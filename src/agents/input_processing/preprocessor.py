@@ -12,7 +12,6 @@ This module handles the actual processing of different input types:
 
 import logging
 from typing import Optional, Dict, Any, Tuple
-import tempfile
 
 # Configure logging
 logger = logging.getLogger(__name__)

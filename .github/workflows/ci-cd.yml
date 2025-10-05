@@ -5,9 +5,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, iteration-1-complete ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, iteration-1-complete ]
 
 jobs:
   lint:
