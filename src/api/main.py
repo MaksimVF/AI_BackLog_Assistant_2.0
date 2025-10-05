@@ -1,8 +1,6 @@
 
 
-
 from fastapi import FastAPI
-from src.config import config
 
 app = FastAPI(
     title="AI Backlog Assistant API",
@@ -21,5 +19,4 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
 

@@ -8,8 +8,7 @@ and routing it to the appropriate processing pipeline.
 """
 
 import logging
-import mimetypes
-from typing import Optional, Dict, Any
+from typing import Optional
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -127,5 +126,4 @@ class ModalityDetector:
 
 # Create a global instance for easy access
 modality_detector = ModalityDetector()
-
 
