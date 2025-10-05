@@ -6,8 +6,8 @@
 | Iteration | Task Description         | Status   | Notes                     | Icon    |
 |-----------|--------------------------|----------|---------------------------|---------|
 | 1         | Setup Infrastructure     | ✅ Done   | Basic setup completed with tests |        |
-| 2         | Level 1: Input Processing|   In Progress | Implemented Input Agent, Modality Detector, and Preprocessor with tests |        |
-| 3         | Level 2: Semantic Analysis | ☐ Not Started | -                        |        |
+| 2         | Level 1: Input Processing| ✅ Done   | Implemented Input Agent, Modality Detector, and Preprocessor with tests |        |
+| 3         | Level 2: Semantic Analysis | ✅ Done   | Implemented Reflection Agent, Semantic Block Classifier, and Contextualiza Agent |        |
 | 4         | Level 3: Analysis        | ☐ Not Started | -                        |        |
 | 5         | Level 4: Recommendations | ☐ Not Started | -                        |        |
 

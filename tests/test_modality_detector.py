@@ -1,6 +1,4 @@
 
-
-
 """
 Test cases for Modality Detector
 """
@@ -9,6 +7,8 @@ import pytest
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
+import pytest
 from src.agents.input_processing.modality_detector import ModalityDetector
 
 def test_modality_detector_initialization():
@@ -92,5 +92,4 @@ def test_main_detection_method():
 
     # Test with unknown input (should default to text for unknown file extensions)
     assert detector.detect("unknown.bin") == "text"
-
 
