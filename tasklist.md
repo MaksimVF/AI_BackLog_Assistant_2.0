@@ -10,6 +10,7 @@
 | 3         | Level 2: Semantic Analysis | ✅ Done   | Implemented Reflection Agent, Semantic Block Classifier, and Contextualiza Agent |        |
 | 4         | Level 3: Analysis        | ✅ Done   | Implemented Risk Assessment, Resource Availability, Impact Potential, and Confidence & Urgency agents with tests |        |
 | 5         | Level 4: Recommendations | ✅ Done   | Implemented Aggregator, Visualization, and Summary agents with tests |        |
+| 6         | Integration & Deployment | ⏳ Pending | Telegram bot, FastAPI, storage, LangGraph, tests, deployment |        |
 
 *Last Updated: 02:31 AM CDT, Sunday, October 05, 2025*
 
@@ -52,6 +53,17 @@
 - [ ] Implement `Summary Agent` for recommendations.
 - [ ] Deploy to Timeweb Cloud with API endpoints.
 - **Test**: Verify recommendations and visualizations with 5 tasks.
+
+## Next Steps to MVP
+
+### Iteration 6: Integration & Deployment (Weeks 11–12)
+- [ ] Implement Telegram bot integration for task submission and status checking
+- [ ] Create FastAPI endpoints (`/tasks`, `/triggers`) for API access
+- [ ] Set up PostgreSQL, Weaviate, and S3 storage integration
+- [ ] Implement LangGraph for parallel execution in Level 3
+- [ ] Write comprehensive tests for all components and integrations
+- [ ] Set up Docker deployment for Timeweb Cloud
+- **Test**: End-to-end testing of the full system with 10 complex tasks
 
 ---
 
