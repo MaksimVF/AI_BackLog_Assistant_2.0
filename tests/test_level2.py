@@ -106,4 +106,3 @@ Deadline: 2023-12-31
     # Verify context
     assert "domain" in result["context"]
     assert "entities" in result["context"]
-

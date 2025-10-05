@@ -78,4 +78,3 @@ def test_metadata_handling():
     assert result.metadata == metadata
     assert result.metadata["source"] == "telegram"
     assert result.metadata["user_id"] == "12345"
-
