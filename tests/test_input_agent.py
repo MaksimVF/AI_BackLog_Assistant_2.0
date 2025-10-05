@@ -11,10 +11,12 @@ from src.agents.input_processing.input_agent import InputAgent, InputData
 
 
 
+
 def test_input_agent_initialization():
     """Test that InputAgent initializes correctly"""
     agent = InputAgent()
     assert agent is not None
+
 
 
 
@@ -27,6 +29,7 @@ def test_text_processing():
     assert isinstance(result, InputData)
     assert result.modality == "text"
     assert result.content == "Sample text input"
+
 
 
 
@@ -49,6 +52,7 @@ def test_modality_detection():
     # Test text (default)
     assert agent.detect_modality("plain text") == "text"
     assert agent.detect_modality("document.txt") == "text"
+
 
 
 
@@ -76,6 +80,7 @@ def test_process_method():
     image_result = agent.process("image.jpg")
     assert image_result.modality == "image"
     assert image_result.content == "image.jpg"
+
 
 
 
