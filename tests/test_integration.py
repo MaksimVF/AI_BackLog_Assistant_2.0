@@ -3,19 +3,12 @@
 Integration tests for Input Processing components
 """
 
-import pytest
 import sys
 import os
 import tempfile
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pytest
-import pytest
 from src.agents.input_processing.input_agent import InputAgent, input_agent
-import pytest
-import pytest
 from src.agents.input_processing.modality_detector import ModalityDetector, modality_detector
-import pytest
-import pytest
 from src.agents.input_processing.preprocessor import Preprocessor, preprocessor
 
 
