@@ -7,8 +7,14 @@ This module coordinates the Level 2 agents (Semantic Analysis).
 
 import logging
 from typing import Dict, Any
+import pytest
+import pytest
 from src.agents.level2.reflection_agent import reflection_agent
+import pytest
+import pytest
 from src.agents.level2.semantic_block_classifier import semantic_block_classifier
+import pytest
+import pytest
 from src.agents.level2.contextualiza_agent import contextualiza_agent
 
 # Configure logging

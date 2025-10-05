@@ -4,8 +4,14 @@ Tests for Level 2 components
 """
 
 import pytest
+import pytest
+import pytest
 from src.agents.level2.reflection_agent import reflection_agent
+import pytest
+import pytest
 from src.agents.level2.semantic_block_classifier import semantic_block_classifier
+import pytest
+import pytest
 from src.agents.level2.contextualiza_agent import contextualiza_agent
 
 def test_reflection_agent():

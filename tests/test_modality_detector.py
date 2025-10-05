@@ -7,6 +7,8 @@ import pytest
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
+import pytest
 from src.agents.input_processing.modality_detector import ModalityDetector
 
 def test_modality_detector_initialization():
