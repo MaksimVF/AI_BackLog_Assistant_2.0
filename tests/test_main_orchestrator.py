@@ -70,6 +70,24 @@ def test_main_orchestrator():
     assert "confidence" in result["level3"]["confidence_urgency"]
     assert "urgency" in result["level3"]["confidence_urgency"]
 
+    # Verify Level 4 results
+    assert "aggregation" in result["level4"]
+    assert "visualization" in result["level4"]
+    assert "summary" in result["level4"]
+
+    # Check aggregation
+    assert "overall_score" in result["level4"]["aggregation"]
+    assert "recommendation" in result["level4"]["aggregation"]
+
+    # Check visualization
+    assert "radar_chart" in result["level4"]["visualization"]
+    assert "bar_chart" in result["level4"]["visualization"]
+
+    # Check summary
+    assert "recommendation" in result["level4"]["summary"]
+    assert "rationale" in result["level4"]["summary"]
+    assert "priority" in result["level4"]["summary"]
+
 
 
 
