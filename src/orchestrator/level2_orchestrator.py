@@ -56,5 +56,7 @@ class Level2Orchestrator:
             "context": context_result
         }
 
+
 # Create a global instance for easy access
+
 level2_orchestrator = Level2Orchestrator()

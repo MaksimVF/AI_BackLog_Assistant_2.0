@@ -130,5 +130,7 @@ class ModalityDetector:
         # Try content detection
         return self.detect_from_content(input_data)
 
+
 # Create a global instance for easy access
+
 modality_detector = ModalityDetector()

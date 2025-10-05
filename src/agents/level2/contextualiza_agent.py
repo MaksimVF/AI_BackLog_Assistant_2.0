@@ -201,5 +201,7 @@ class ContextualizaAgent:
             "metadata": analysis.metadata
         }
 
+
 # Create a global instance for easy access
+
 contextualiza_agent = ContextualizaAgent()
