@@ -21,6 +21,7 @@ app = FastAPI(
 
 
 
+
 class ProcessRequest(BaseModel):
     input_data: str
     metadata: Optional[Dict[str, Any]] = None

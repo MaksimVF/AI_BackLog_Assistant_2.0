@@ -21,11 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 
+
 class InputData(BaseModel):
     """Data model for input processing"""
     content: str
     modality: str
     metadata: Optional[Dict[str, Any]] = None
+
 
 
 
