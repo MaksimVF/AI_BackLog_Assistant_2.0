@@ -9,6 +9,7 @@ from typing import Dict, Any
 from src.orchestrator.level1_orchestrator import level1_orchestrator
 from src.orchestrator.level2_orchestrator import level2_orchestrator
 from src.orchestrator.level3_orchestrator import level3_orchestrator
+from src.orchestrator.level4_orchestrator import level4_orchestrator
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -50,11 +51,16 @@ class MainOrchestrator:
         level3_result = level3_orchestrator.analyze_task(level1_result["content"])
         logger.debug(f"Level 3 result: {level3_result}")
 
+        # Step 4: Level 4 Recommendations
+        level4_result = level4_orchestrator.process_recommendations(level3_result)
+        logger.debug(f"Level 4 result: {level4_result}")
+
         # Combine results
         return {
             "level1": level1_result,
             "level2": level2_result,
-            "level3": level3_result
+            "level3": level3_result,
+            "level4": level4_result
         }
 
 
