@@ -1,8 +1,9 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from src.orchestrator.main_orchestrator import main_orchestrator
+from src.bot.telegram_bot import telegram_bot
 import logging
 
 # Configure logging
@@ -26,6 +27,21 @@ class ProcessRequest(BaseModel):
     input_data: str
     metadata: Optional[Dict[str, Any]] = None
 
+class TaskRequest(BaseModel):
+    input_data: str
+    metadata: Optional[Dict[str, Any]] = None
+
+class TaskResponse(BaseModel):
+    task_id: str
+    status: str
+    result: Dict[str, Any]
+
+class TriggerResponse(BaseModel):
+    trigger_id: str
+    task_id: str
+    reason: str
+    timestamp: str
+
 @app.get("/")
 async def read_root():
     return {"message": "AI Backlog Assistant API is running"}
@@ -34,10 +50,137 @@ async def read_root():
 async def health_check():
     return {"status": "healthy", "version": "0.1.0"}
 
+@app.post("/tasks", response_model=TaskResponse)
+async def create_task(request: TaskRequest):
+    """
+    Create a new task and process it through the workflow
+    """
+    try:
+        logger.info(f"Creating task: {request.input_data[:50]}...")
+
+        # Process through the workflow
+        result = main_orchestrator.process_workflow(
+            request.input_data,
+            request.metadata
+        )
+
+        # Generate a simple task ID
+        task_id = f"task_{hash(request.input_data) % 1000000}"
+
+        logger.info(f"Task {task_id} created successfully")
+
+        return {
+            "task_id": task_id,
+            "status": "completed",
+            "result": result
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating task: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/triggers", response_model=List[TriggerResponse])
+async def get_triggers():
+    """
+    Get active triggers (placeholder implementation)
+    """
+    # For now, return a placeholder response
+    # In a real implementation, this would query the database for active triggers
+    return [
+        {
+            "trigger_id": "trigger_1",
+            "task_id": "task_123",
+            "reason": "high_urgency",
+            "timestamp": "2025-10-05T12:00:00Z"
+        },
+        {
+            "trigger_id": "trigger_2",
+            "task_id": "task_456",
+            "reason": "high_impact",
+            "timestamp": "2025-10-05T11:30:00Z"
+        }
+    ]
+
+# Telegram Bot Endpoints
+class TelegramMessageRequest(BaseModel):
+    message_text: str
+    user_id: str = "unknown"
+
+@app.post("/telegram/message")
+async def process_telegram_message(request: TelegramMessageRequest):
+    """
+    Process a Telegram message through the workflow
+    """
+    try:
+        logger.info(f"Processing Telegram message: {request.message_text[:50]}...")
+
+        result = telegram_bot.process_telegram_message(
+            request.message_text,
+            request.user_id
+        )
+
+        logger.info(f"Telegram message processed successfully")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error processing Telegram message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/telegram/status/{task_id}")
+async def get_telegram_task_status(task_id: str):
+    """
+    Get the status of a Telegram task
+    """
+    try:
+        logger.info(f"Getting status for Telegram task: {task_id}")
+
+        result = telegram_bot.get_task_status(task_id)
+
+        logger.info(f"Telegram task status retrieved successfully")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting Telegram task status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/telegram/tasks")
+async def list_telegram_tasks():
+    """
+    List recent Telegram tasks
+    """
+    try:
+        logger.info("Listing recent Telegram tasks")
+
+        result = telegram_bot.list_tasks()
+
+        logger.info(f"Telegram tasks listed successfully")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error listing Telegram tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/telegram/archive/{task_id}")
+async def get_telegram_task_archive(task_id: str):
+    """
+    Get Telegram task archive details
+    """
+    try:
+        logger.info(f"Getting archive for Telegram task: {task_id}")
+
+        result = telegram_bot.get_task_archive(task_id)
+
+        logger.info(f"Telegram task archive retrieved successfully")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting Telegram task archive: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/process")
 async def process_input(request: ProcessRequest):
     """
-    Process input through the entire workflow
+    Process input through the entire workflow (legacy endpoint)
     """
     try:
         logger.info(f"Processing input: {request.input_data[:50]}...")

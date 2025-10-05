@@ -10,4 +10,5 @@ redis==4.5.5
 pytest==7.4.0
 flake8==6.1.0
 httpx==0.23.0
+aiogram==2.25.1  # Telegram bot framework
 
