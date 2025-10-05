@@ -8,9 +8,11 @@ app = FastAPI(
     version="0.1.0"
 )
 
+
 @app.get("/")
 async def read_root():
     return {"message": "AI Backlog Assistant API is running"}
+
 
 @app.get("/health")
 async def health_check():
