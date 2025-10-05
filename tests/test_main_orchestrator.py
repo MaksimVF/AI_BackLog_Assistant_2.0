@@ -6,6 +6,7 @@ Tests for Main Orchestrator
 from src.orchestrator.main_orchestrator import main_orchestrator
 
 
+
 def test_main_orchestrator():
     """Test the Main Orchestrator"""
     # Test with a simple text input
@@ -38,6 +39,7 @@ def test_main_orchestrator():
     # Check context
     assert "domain" in result["level2"]["context"]
     assert "entities" in result["level2"]["context"]
+
 
 
 def test_main_orchestrator_with_file():
