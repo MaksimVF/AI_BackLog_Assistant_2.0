@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 
+
 class ModalityDetector:
     """Detects the modality of input data"""
 

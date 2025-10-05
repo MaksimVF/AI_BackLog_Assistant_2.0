@@ -16,10 +16,12 @@ from src.agents.input_processing.preprocessor import Preprocessor
 
 
 
+
 def test_preprocessor_initialization():
     """Test that Preprocessor initializes correctly"""
     preprocessor = Preprocessor()
     assert preprocessor is not None
+
 
 
 
@@ -57,6 +59,7 @@ def test_text_file_processing():
 
 
 
+
 def test_pdf_processing():
     """Test PDF processing (mocked)"""
     preprocessor = Preprocessor()
@@ -78,6 +81,7 @@ def test_pdf_processing():
     finally:
         # Clean up
         os.unlink(temp_path)
+
 
 
 
@@ -115,6 +119,7 @@ def test_audio_processing():
 
 
 
+
 def test_image_processing():
     """Test image processing (mocked)"""
     preprocessor = Preprocessor()
@@ -136,6 +141,7 @@ def test_image_processing():
     finally:
         # Clean up
         os.unlink(temp_path)
+
 
 
 

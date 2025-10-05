@@ -15,10 +15,12 @@ from src.agents.input_processing.modality_detector import ModalityDetector
 
 
 
+
 def test_modality_detector_initialization():
     """Test that ModalityDetector initializes correctly"""
     detector = ModalityDetector()
     assert detector is not None
+
 
 
 
@@ -59,6 +61,7 @@ def test_filename_detection():
 
 
 
+
 def test_mimetype_detection():
     """Test modality detection from MIME types"""
     detector = ModalityDetector()
@@ -89,6 +92,7 @@ def test_mimetype_detection():
 
 
 
+
 def test_content_detection():
     """Test modality detection from content"""
     detector = ModalityDetector()
@@ -102,6 +106,7 @@ def test_content_detection():
 
     # Test empty content
     assert detector.detect_from_content("") == "unknown"
+
 
 
 

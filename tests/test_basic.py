@@ -11,10 +11,12 @@ from src.api.main import app
 
 
 
+
 def test_app_creation():
     assert app is not None
     assert app.title == "AI Backlog Assistant API"
     assert app.version == "0.1.0"
+
 
 
 
