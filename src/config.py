@@ -7,6 +7,7 @@ load_dotenv('.env.dev')
 
 
 
+
 class Config:
     # Database
     POSTGRES_USER = os.getenv('POSTGRES_USER', 'devuser')

@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 
+
 class SemanticBlock(BaseModel):
     """Data model for a semantic block"""
     block_type: str  # header, paragraph, table, list, etc.
@@ -23,6 +24,7 @@ class SemanticBlock(BaseModel):
     start_index: int
     end_index: int
     metadata: Optional[Dict[str, Any]] = None
+
 
 
 

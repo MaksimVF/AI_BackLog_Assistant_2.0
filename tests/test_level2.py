@@ -11,6 +11,7 @@ from src.agents.level2.contextualiza_agent import contextualiza_agent
 
 
 
+
 def test_reflection_agent():
     """Test the Reflection Agent"""
     # Test bug classification
@@ -27,6 +28,7 @@ def test_reflection_agent():
     result = reflection_agent.classify_task("The UI is confusing")
     assert result.task_type == "feedback"
     assert result.confidence > 0
+
 
 
 
@@ -64,6 +66,7 @@ This is a paragraph.
 
 
 
+
 def test_contextualiza_agent():
     """Test the Contextualiza Agent"""
     # Test with text containing entities
@@ -79,6 +82,7 @@ def test_contextualiza_agent():
     assert "email" in entity_types
     assert "url" in entity_types
     assert "date" in entity_types
+
 
 
 
