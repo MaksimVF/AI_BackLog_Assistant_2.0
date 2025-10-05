@@ -50,7 +50,3 @@ class Config:
     @property
     def WEAVIATE_URL(self):
         return f"http://{self.WEAVIATE_HOST}:{self.WEAVIATE_PORT}"
-
-
-config = Config()
-
