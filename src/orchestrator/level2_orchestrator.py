@@ -14,6 +14,7 @@ from src.agents.level2.contextualiza_agent import contextualiza_agent
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class Level2Orchestrator:
     """Orchestrates Level 2 processing"""
 

@@ -14,6 +14,7 @@ from typing import Dict, Any, Tuple
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class Preprocessor:
     """Handles preprocessing of different input types"""
     def __init__(self):

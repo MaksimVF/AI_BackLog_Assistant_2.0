@@ -13,11 +13,13 @@ from pydantic import BaseModel
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class TaskClassification(BaseModel):
     """Data model for task classification"""
     task_type: str  # idea, bug, or feedback
     confidence: float  # confidence score 0-1
     metadata: Optional[Dict[str, Any]] = None
+
 
 class ReflectionAgent:
     """Agent for reflecting on and classifying task types"""
