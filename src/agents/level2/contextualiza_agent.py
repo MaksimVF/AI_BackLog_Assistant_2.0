@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 
+
 class Entity(BaseModel):
     """Data model for an extracted entity"""
     entity_type: str  # person, organization, location, date, etc.
@@ -28,11 +29,13 @@ class Entity(BaseModel):
 
 
 
+
 class ContextAnalysis(BaseModel):
     """Data model for context analysis results"""
     domain: str  # e.g., IT, marketing, finance, etc.
     entities: List[Entity]
     metadata: Optional[Dict[str, Any]] = None
+
 
 
 
