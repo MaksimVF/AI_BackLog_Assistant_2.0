@@ -21,9 +21,10 @@ def test_main_orchestrator():
 
     result = main_orchestrator.process_workflow(input_data)
 
-    # Check that both levels are present
+    # Check that all levels are present
     assert "level1" in result
     assert "level2" in result
+    assert "level3" in result
 
     # Verify Level 1 results
     assert "modality" in result["level1"]
@@ -47,6 +48,28 @@ def test_main_orchestrator():
     assert "domain" in result["level2"]["context"]
     assert "entities" in result["level2"]["context"]
 
+    # Verify Level 3 results
+    assert "risk" in result["level3"]
+    assert "resources" in result["level3"]
+    assert "impact" in result["level3"]
+    assert "confidence_urgency" in result["level3"]
+
+    # Check risk
+    assert "risk_score" in result["level3"]["risk"]
+    assert result["level3"]["risk"]["risk_score"] > 0
+
+    # Check resources
+    assert "time_hours" in result["level3"]["resources"]
+    assert result["level3"]["resources"]["time_hours"] > 0
+
+    # Check impact
+    assert "impact_score" in result["level3"]["impact"]
+    assert result["level3"]["impact"]["impact_score"] > 0
+
+    # Check confidence/urgency
+    assert "confidence" in result["level3"]["confidence_urgency"]
+    assert "urgency" in result["level3"]["confidence_urgency"]
+
 
 
 
@@ -63,9 +86,10 @@ def test_main_orchestrator_with_file():
 
     result = main_orchestrator.process_workflow(input_data)
 
-    # Check that both levels are present
+    # Check that all levels are present
     assert "level1" in result
     assert "level2" in result
+    assert "level3" in result
 
     # Verify Level 1 results
     assert "modality" in result["level1"]
@@ -76,3 +100,9 @@ def test_main_orchestrator_with_file():
     assert "reflection" in result["level2"]
     assert "blocks" in result["level2"]
     assert "context" in result["level2"]
+
+    # Verify Level 3 results
+    assert "risk" in result["level3"]
+    assert "resources" in result["level3"]
+    assert "impact" in result["level3"]
+    assert "confidence_urgency" in result["level3"]
