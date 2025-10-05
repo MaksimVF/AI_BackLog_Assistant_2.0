@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv('.env.dev')
 
+
 class Config:
     # Database
     POSTGRES_USER = os.getenv('POSTGRES_USER', 'devuser')
@@ -49,6 +50,7 @@ class Config:
     @property
     def WEAVIATE_URL(self):
         return f"http://{self.WEAVIATE_HOST}:{self.WEAVIATE_PORT}"
+
 
 config = Config()
 

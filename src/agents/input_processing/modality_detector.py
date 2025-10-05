@@ -13,6 +13,7 @@ from typing import Optional
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class ModalityDetector:
     """Detects the modality of input data"""
 
@@ -123,6 +124,7 @@ class ModalityDetector:
 
         # Try content detection
         return self.detect_from_content(input_data)
+
 
 # Create a global instance for easy access
 modality_detector = ModalityDetector()
