@@ -1,6 +1,4 @@
 
-
-
 """
 Test cases for Preprocessor
 """
@@ -115,5 +113,4 @@ def test_error_handling():
     assert text == ""
     assert metadata["processing_status"] == "error"
     assert "error_message" in metadata
-
 

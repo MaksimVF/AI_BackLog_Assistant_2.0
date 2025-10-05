@@ -1,5 +1,4 @@
 
-
 """
 Preprocessing Module
 
@@ -14,7 +13,6 @@ from typing import Dict, Any, Tuple
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
 
 class Preprocessor:
     """Handles preprocessing of different input types"""
@@ -139,6 +137,5 @@ class Preprocessor:
             return "", metadata
 
 # Create a global instance for easy access
-
 
 preprocessor = Preprocessor()

@@ -1,7 +1,4 @@
 
-
-
-
 """
 Tests for Main Orchestrator
 """
@@ -62,6 +59,4 @@ def test_main_orchestrator_with_file():
     assert "reflection" in result["level2"]
     assert "blocks" in result["level2"]
     assert "context" in result["level2"]
-
-
 

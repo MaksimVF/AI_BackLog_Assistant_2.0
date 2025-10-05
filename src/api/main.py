@@ -1,7 +1,4 @@
 
-
-
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
@@ -53,5 +50,4 @@ async def process_input(request: ProcessRequest):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
 

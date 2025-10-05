@@ -1,6 +1,4 @@
 
-
-
 """
 Test cases for Modality Detector
 """
@@ -92,5 +90,4 @@ def test_main_detection_method():
 
     # Test with unknown input (should default to text for unknown file extensions)
     assert detector.detect("unknown.bin") == "text"
-
 

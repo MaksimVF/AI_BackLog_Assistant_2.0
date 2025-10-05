@@ -1,6 +1,4 @@
 
-
-
 """
 Tests for Level 2 components
 """

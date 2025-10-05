@@ -15,13 +15,11 @@ from pydantic import BaseModel
 # Configure logging
 logger = logging.getLogger(__name__)
 
-
 class InputData(BaseModel):
     """Data model for input processing"""
     content: str
     modality: str
     metadata: Optional[Dict[str, Any]] = None
-
 
 class InputAgent:
     """Agent for processing various input types"""
@@ -151,6 +149,5 @@ class InputAgent:
             return self.process_text(input_data, metadata)
 
 # Create a global instance for easy access
-
 
 input_agent = InputAgent()
