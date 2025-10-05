@@ -14,10 +14,12 @@ from src.agents.input_processing.input_agent import InputAgent, InputData
 
 
 
+
 def test_input_agent_initialization():
     """Test that InputAgent initializes correctly"""
     agent = InputAgent()
     assert agent is not None
+
 
 
 
@@ -33,6 +35,7 @@ def test_text_processing():
     assert isinstance(result, InputData)
     assert result.modality == "text"
     assert result.content == "Sample text input"
+
 
 
 
@@ -65,6 +68,7 @@ def test_modality_detection():
 
 
 
+
 def test_process_method():
     """Test the main process method with different modalities"""
     agent = InputAgent()
@@ -88,6 +92,7 @@ def test_process_method():
     image_result = agent.process("image.jpg")
     assert image_result.modality == "image"
     assert image_result.content == "image.jpg"
+
 
 
 
