@@ -1,4 +1,3 @@
-
 """
 Main Orchestrator
 
@@ -51,6 +50,7 @@ class MainOrchestrator:
             "level1": level1_result,
             "level2": level2_result
         }
+
 
 # Create a global instance for easy access
 main_orchestrator = MainOrchestrator()
