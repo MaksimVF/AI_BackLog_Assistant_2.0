@@ -14,6 +14,13 @@ from pydantic import BaseModel
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
+
+
+
+
+
+
 class Entity(BaseModel):
     """Data model for an extracted entity"""
     entity_type: str  # person, organization, location, date, etc.
@@ -22,11 +29,25 @@ class Entity(BaseModel):
     end_index: int
     confidence: float
 
+
+
+
+
+
+
+
 class ContextAnalysis(BaseModel):
     """Data model for context analysis results"""
     domain: str  # e.g., IT, marketing, finance, etc.
     entities: List[Entity]
     metadata: Optional[Dict[str, Any]] = None
+
+
+
+
+
+
+
 
 class ContextualizaAgent:
     """Agent for extracting context and entities from text"""
@@ -180,5 +201,7 @@ class ContextualizaAgent:
             "metadata": analysis.metadata
         }
 
+
 # Create a global instance for easy access
+
 contextualiza_agent = ContextualizaAgent()

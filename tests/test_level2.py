@@ -3,16 +3,18 @@
 Tests for Level 2 components
 """
 
-import pytest
-import pytest
-import pytest
 from src.agents.level2.reflection_agent import reflection_agent
-import pytest
-import pytest
 from src.agents.level2.semantic_block_classifier import semantic_block_classifier
-import pytest
-import pytest
 from src.agents.level2.contextualiza_agent import contextualiza_agent
+
+
+
+
+
+
+
+
+
 
 def test_reflection_agent():
     """Test the Reflection Agent"""
@@ -30,6 +32,15 @@ def test_reflection_agent():
     result = reflection_agent.classify_task("The UI is confusing")
     assert result.task_type == "feedback"
     assert result.confidence > 0
+
+
+
+
+
+
+
+
+
 
 def test_semantic_block_classifier():
     """Test the Semantic Block Classifier"""
@@ -59,6 +70,15 @@ This is a paragraph.
     if "table" in block_types:
         assert True
 
+
+
+
+
+
+
+
+
+
 def test_contextualiza_agent():
     """Test the Contextualiza Agent"""
     # Test with text containing entities
@@ -74,6 +94,15 @@ def test_contextualiza_agent():
     assert "email" in entity_types
     assert "url" in entity_types
     assert "date" in entity_types
+
+
+
+
+
+
+
+
+
 
 def test_level2_integration():
     """Test Level 2 integration"""

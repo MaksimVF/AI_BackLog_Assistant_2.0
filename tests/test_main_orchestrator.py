@@ -3,10 +3,16 @@
 Tests for Main Orchestrator
 """
 
-import pytest
-import pytest
-import pytest
 from src.orchestrator.main_orchestrator import main_orchestrator
+
+
+
+
+
+
+
+
+
 
 def test_main_orchestrator():
     """Test the Main Orchestrator"""
@@ -40,6 +46,15 @@ def test_main_orchestrator():
     # Check context
     assert "domain" in result["level2"]["context"]
     assert "entities" in result["level2"]["context"]
+
+
+
+
+
+
+
+
+
 
 def test_main_orchestrator_with_file():
     """Test the Main Orchestrator with a file input"""

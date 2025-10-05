@@ -7,18 +7,19 @@ This module coordinates the Level 2 agents (Semantic Analysis).
 
 import logging
 from typing import Dict, Any
-import pytest
-import pytest
 from src.agents.level2.reflection_agent import reflection_agent
-import pytest
-import pytest
 from src.agents.level2.semantic_block_classifier import semantic_block_classifier
-import pytest
-import pytest
 from src.agents.level2.contextualiza_agent import contextualiza_agent
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+
+
+
+
+
+
 
 class Level2Orchestrator:
     """Orchestrates Level 2 processing"""
@@ -55,5 +56,7 @@ class Level2Orchestrator:
             "context": context_result
         }
 
+
 # Create a global instance for easy access
+
 level2_orchestrator = Level2Orchestrator()

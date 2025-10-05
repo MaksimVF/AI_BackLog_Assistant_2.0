@@ -3,18 +3,33 @@
 Test cases for Modality Detector
 """
 
-import pytest
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pytest
-import pytest
 from src.agents.input_processing.modality_detector import ModalityDetector
+
+
+
+
+
+
+
+
+
 
 def test_modality_detector_initialization():
     """Test that ModalityDetector initializes correctly"""
     detector = ModalityDetector()
     assert detector is not None
+
+
+
+
+
+
+
+
+
 
 def test_filename_detection():
     """Test modality detection from filenames"""
@@ -41,6 +56,15 @@ def test_filename_detection():
     assert detector.detect_from_filename("unknown.exe") == "unknown"
     assert detector.detect_from_filename("") == "unknown"
 
+
+
+
+
+
+
+
+
+
 def test_mimetype_detection():
     """Test modality detection from MIME types"""
     detector = ModalityDetector()
@@ -64,6 +88,15 @@ def test_mimetype_detection():
     assert detector.detect_from_mimetype("application/octet-stream") == "unknown"
     assert detector.detect_from_mimetype("") == "unknown"
 
+
+
+
+
+
+
+
+
+
 def test_content_detection():
     """Test modality detection from content"""
     detector = ModalityDetector()
@@ -77,6 +110,15 @@ def test_content_detection():
 
     # Test empty content
     assert detector.detect_from_content("") == "unknown"
+
+
+
+
+
+
+
+
+
 
 def test_main_detection_method():
     """Test the main detection method with different inputs"""
