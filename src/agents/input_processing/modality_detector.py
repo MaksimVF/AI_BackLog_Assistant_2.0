@@ -128,4 +128,3 @@ class ModalityDetector:
 
 # Create a global instance for easy access
 modality_detector = ModalityDetector()
-
