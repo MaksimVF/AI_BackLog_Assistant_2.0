@@ -5,7 +5,7 @@
 ## Progress Report
 | Iteration | Task Description         | Status   | Notes                     | Icon    |
 |-----------|--------------------------|----------|---------------------------|---------|
-| 1         | Setup Infrastructure     |   Done   | Basic setup completed     |        |
+| 1         | Setup Infrastructure     | ✅ Done   | Basic setup completed     |        |
 | 2         | Level 1: Input Processing|   In Progress | Testing Input Agent       |        |
 | 3         | Level 2: Semantic Analysis | ☐ Not Started | -                        |        |
 | 4         | Level 3: Analysis        | ☐ Not Started | -                        |        |
@@ -18,10 +18,10 @@
 ## Development Plan
 
 ### Iteration 1: Setup Infrastructure (Weeks 1–2)
-- [ ] Set up project structure and `requirements.txt` per [@vision.md](#).
-- [ ] Configure `.env.dev` and `src/config.py` for environment loading.
-- [ ] Initialize Docker Compose with PostgreSQL, Redis, Weaviate (local testing).
-- [ ] Setup CI/CD with GitHub Actions (flake8, pytest).
+- [x] Set up project structure and `requirements.txt` per [@vision.md](#).
+- [x] Configure `.env.dev` and `src/config.py` for environment loading.
+- [x] Initialize Docker Compose with PostgreSQL, Redis, Weaviate (local testing).
+- [x] Setup CI/CD with GitHub Actions (flake8, pytest).
 - **Test**: Verify Docker setup and CI/CD pipeline run successfully.
 
 ### Iteration 2: Level 1: Input Processing (Weeks 3–4)
