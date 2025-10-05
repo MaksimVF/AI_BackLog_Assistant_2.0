@@ -182,4 +182,3 @@ class ContextualizaAgent:
 
 # Create a global instance for easy access
 contextualiza_agent = ContextualizaAgent()
-

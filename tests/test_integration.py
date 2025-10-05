@@ -146,4 +146,3 @@ def test_error_handling_integration():
     assert content == ""
     assert meta["processing_status"] == "error"
     assert "error_message" in meta
-

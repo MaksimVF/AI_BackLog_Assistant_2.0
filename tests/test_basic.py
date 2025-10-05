@@ -20,4 +20,3 @@ def test_routes_exist():
 
     assert root_route is not None
     assert health_route is not None
-

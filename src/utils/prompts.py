@@ -58,4 +58,3 @@ Based on the following analysis data, recommend whether to implement or delay th
 
 Return a JSON object with "recommendation" (implement/delay) and "reason".
 """
-

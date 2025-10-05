@@ -188,4 +188,3 @@ class SemanticBlockClassifier:
 
 # Create a global instance for easy access
 semantic_block_classifier = SemanticBlockClassifier()
-
