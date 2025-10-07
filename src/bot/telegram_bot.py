@@ -9,6 +9,9 @@ import logging
 from typing import Dict, Any
 from src.config import Config
 from src.orchestrator.main_orchestrator import main_orchestrator
+from src.db.connection import AsyncSessionLocal
+from src.db.repository import TaskRepository, TaskFileRepository, TriggerRepository
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +27,7 @@ class TelegramBot:
         """Initialize the Telegram Bot"""
         logger.info("Telegram Bot initialized (API mode)")
 
-    def process_telegram_message(self, message_text: str, user_id: str = "unknown") -> Dict[str, Any]:
+    async def process_telegram_message(self, message_text: str, user_id: str = "unknown") -> Dict[str, Any]:
         """
         Process a Telegram message through the workflow
 
@@ -50,6 +53,25 @@ class TelegramBot:
             # Generate a simple task ID
             task_id = f"task_{hash(message_text) % 1000000}"
 
+            # Store in database
+            async with AsyncSessionLocal() as db:
+                task_data = {
+                    "task_id": task_id,
+                    "input_data": message_text,
+                    "metadata": metadata,
+                    "status": "completed",
+                    "classification": result.get("classification", "unknown"),
+                    "risk_score": result.get("risk_score"),
+                    "impact_score": result.get("impact_score"),
+                    "confidence_score": result.get("confidence_score"),
+                    "urgency_score": result.get("urgency_score"),
+                    "recommendation": result.get("recommendation"),
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+
+                await TaskRepository.create_task(db, task_data)
+
             return {
                 "task_id": task_id,
                 "status": "completed",
@@ -64,9 +86,9 @@ class TelegramBot:
                 "error": str(e)
             }
 
-    def get_task_status(self, task_id: str) -> Dict[str, Any]:
+    async def get_task_status(self, task_id: str) -> Dict[str, Any]:
         """
-        Get the status of a task (placeholder implementation)
+        Get the status of a task
 
         Args:
             task_id: The task ID to check
@@ -74,50 +96,66 @@ class TelegramBot:
         Returns:
             Task status information
         """
-        # For now, return a placeholder response
-        return {
-            "task_id": task_id,
-            "status": "processed",
-            "classification": "idea",
-            "risk_score": 4.2,
-            "impact_score": 7.8,
-            "recommendation": "Implement soon"
-        }
+        try:
+            async with AsyncSessionLocal() as db:
+                task = await TaskRepository.get_task_by_task_id(db, task_id)
 
-    def list_tasks(self) -> Dict[str, Any]:
+                if not task:
+                    return {
+                        "task_id": task_id,
+                        "status": "not_found",
+                        "error": "Task not found"
+                    }
+
+                return {
+                    "task_id": task.task_id,
+                    "status": task.status,
+                    "classification": task.classification,
+                    "risk_score": task.risk_score,
+                    "impact_score": task.impact_score,
+                    "recommendation": task.recommendation
+                }
+
+        except Exception as e:
+            logger.error(f"Error getting task status: {e}")
+            return {
+                "task_id": task_id,
+                "status": "error",
+                "error": str(e)
+            }
+
+    async def list_tasks(self) -> Dict[str, Any]:
         """
-        List recent tasks (placeholder implementation)
+        List recent tasks
 
         Returns:
             List of recent tasks
         """
-        # For now, return a placeholder response
-        return {
-            "tasks": [
-                {
-                    "task_id": "123",
-                    "description": "Implement user authentication",
-                    "status": "processed",
-                    "recommendation": "High priority"
-                },
-                {
-                    "task_id": "124",
-                    "description": "Fix login bug",
-                    "status": "processed",
-                    "recommendation": "Critical"
-                },
-                {
-                    "task_id": "125",
-                    "description": "Add dark mode",
-                    "status": "processed",
-                    "recommendation": "Low priority"
-                }
-            ]
-        }
+        try:
+            async with AsyncSessionLocal() as db:
+                tasks = await TaskRepository.list_tasks(db, limit=10)
 
-    def get_task_archive(self, task_id: str) -> Dict[str, Any]:
+                formatted_tasks = []
+                for task in tasks:
+                    formatted_tasks.append({
+                        "task_id": task.task_id,
+                        "description": task.input_data[:50] + "...",
+                        "status": task.status,
+                        "recommendation": task.recommendation or "No recommendation"
+                    })
+
+                return {"tasks": formatted_tasks}
+
+        except Exception as e:
+            logger.error(f"Error listing tasks: {e}")
+            return {
+                "tasks": [],
+                "error": str(e)
+            }
+
+    async def get_task_archive(self, task_id: str) -> Dict[str, Any]:
         """
-        Get task archive details (placeholder implementation)
+        Get task archive details
 
         Args:
             task_id: The task ID to archive
@@ -125,21 +163,42 @@ class TelegramBot:
         Returns:
             Task archive details
         """
-        # For now, return a placeholder response
-        return {
-            "task_id": task_id,
-            "original_input": "Implement user authentication system with OAuth2 support",
-            "classification": "idea",
-            "analysis_results": {
-                "risk_score": 3.5,
-                "resource_needs": "2 developers, 1 week",
-                "impact_score": 8.2,
-                "confidence": 9.1,
-                "urgency": 7.8
-            },
-            "recommendation": "Implement in next sprint",
-            "files": ["https://example.com/report.pdf"]
-        }
+        try:
+            async with AsyncSessionLocal() as db:
+                task = await TaskRepository.get_task_by_task_id(db, task_id)
+
+                if not task:
+                    return {
+                        "task_id": task_id,
+                        "status": "not_found",
+                        "error": "Task not found"
+                    }
+
+                # Get associated files
+                files = await TaskFileRepository.get_files_by_task_id(db, task_id)
+                file_urls = [file.file_url for file in files]
+
+                return {
+                    "task_id": task.task_id,
+                    "original_input": task.input_data,
+                    "classification": task.classification,
+                    "analysis_results": {
+                        "risk_score": task.risk_score,
+                        "impact_score": task.impact_score,
+                        "confidence_score": task.confidence_score,
+                        "urgency_score": task.urgency_score
+                    },
+                    "recommendation": task.recommendation,
+                    "files": file_urls
+                }
+
+        except Exception as e:
+            logger.error(f"Error getting task archive: {e}")
+            return {
+                "task_id": task_id,
+                "status": "error",
+                "error": str(e)
+            }
 
 # Create a global instance
 telegram_bot = TelegramBot()

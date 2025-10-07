@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 from src.orchestrator.main_orchestrator import main_orchestrator
 from src.bot.telegram_bot import telegram_bot
+from src.db.connection import AsyncSessionLocal
+from src.db.repository import TaskRepository, TriggerRepository
 import logging
 
 # Configure logging
@@ -82,24 +84,26 @@ async def create_task(request: TaskRequest):
 @app.get("/triggers", response_model=List[TriggerResponse])
 async def get_triggers():
     """
-    Get active triggers (placeholder implementation)
+    Get active triggers
     """
-    # For now, return a placeholder response
-    # In a real implementation, this would query the database for active triggers
-    return [
-        {
-            "trigger_id": "trigger_1",
-            "task_id": "task_123",
-            "reason": "high_urgency",
-            "timestamp": "2025-10-05T12:00:00Z"
-        },
-        {
-            "trigger_id": "trigger_2",
-            "task_id": "task_456",
-            "reason": "high_impact",
-            "timestamp": "2025-10-05T11:30:00Z"
-        }
-    ]
+    try:
+        async with AsyncSessionLocal() as db:
+            triggers = await TriggerRepository.list_triggers(db, limit=10)
+
+            formatted_triggers = []
+            for trigger in triggers:
+                formatted_triggers.append({
+                    "trigger_id": trigger.trigger_id,
+                    "task_id": trigger.task_id,
+                    "reason": trigger.reason,
+                    "timestamp": trigger.timestamp.isoformat()
+                })
+
+            return formatted_triggers
+
+    except Exception as e:
+        logger.error(f"Error getting triggers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Telegram Bot Endpoints
 class TelegramMessageRequest(BaseModel):

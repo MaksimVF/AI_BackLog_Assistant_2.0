@@ -6,9 +6,11 @@ fastapi==0.105.0
 uvicorn==0.22.0
 python-dotenv==1.0.0
 sqlalchemy==2.0.15
+asyncpg==0.27.0  # Async PostgreSQL driver
 redis==4.5.5
 pytest==7.4.0
 flake8==6.1.0
 httpx==0.23.0
 aiogram==2.25.1  # Telegram bot framework
+weaviate-client==3.25.0  # Weaviate vector database client
 
