@@ -32,7 +32,13 @@ class TelegramBot:
         logger.info("Telegram Bot initialized")
 
         # Initialize Telegram bot and dispatcher
-        self.bot = Bot(token=os.getenv("Telegram_API_Key", config.telegram_api_key))
+        telegram_token = config.telegram_api_key
+        if not telegram_token or telegram_token == "AIBLA":
+            logger.warning("Telegram token not configured or invalid, using mock mode")
+            # In mock mode, we'll still initialize but won't actually connect
+            self.bot = None
+        else:
+            self.bot = Bot(token=telegram_token)
         self.dp = Dispatcher()
 
         # Register handlers
@@ -396,6 +402,10 @@ class TelegramBot:
 
     async def start_polling(self):
         """Start polling for Telegram messages"""
+        if self.bot is None:
+            logger.warning("Cannot start polling: Telegram bot is in mock mode")
+            return
+
         logger.info("Starting Telegram bot polling...")
         await self.dp.start_polling(self.bot)
 

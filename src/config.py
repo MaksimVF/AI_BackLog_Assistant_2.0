@@ -39,7 +39,7 @@ class Config:
 
     @property
     def telegram_api_key(self):
-        return os.getenv('Telegram_API_Key', self.TELEGRAM_TOKEN)
+        return self.TELEGRAM_TOKEN
 
     # Mistral API
     MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
