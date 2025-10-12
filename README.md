@@ -76,6 +76,22 @@ pytest tests/
 flake8 src/ --max-line-length=88 --ignore=E501,W503
 ```
 
+## Telegram Bot Setup
+
+To use the Telegram bot functionality:
+
+1. Create a new bot using BotFather in Telegram
+2. Get the API token from BotFather
+3. Set the token in your `.env` file:
+   ```
+   TELEGRAM_TOKEN=your_telegram_bot_token_here
+   ```
+
+4. Run the bot:
+   ```bash
+   python -m src.bot.telegram_bot
+   ```
+
 ## Development
 
 Follow the conventions in [conventions.md](conventions.md) and the workflow in [workflow.md](workflow.md).
