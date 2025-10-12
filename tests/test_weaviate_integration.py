@@ -10,12 +10,13 @@ This module tests the Weaviate vector database integration.
 """
 
 import pytest
-from src.utils.weaviate_client import weaviate_client
+from src.utils.weaviate_client import get_weaviate_client
 
 @pytest.mark.skip(reason="Weaviate integration test - requires running Weaviate instance")
 def test_weaviate_schema_creation():
     """Test Weaviate schema creation"""
     # Create schema
+    weaviate_client = get_weaviate_client()
     result = weaviate_client.create_schema()
     assert result is True
 
@@ -23,6 +24,7 @@ def test_weaviate_schema_creation():
 def test_weaviate_task_embedding():
     """Test adding and retrieving task embeddings from Weaviate"""
     # Create schema first
+    weaviate_client = get_weaviate_client()
     weaviate_client.create_schema()
 
     # Test data
@@ -57,6 +59,7 @@ def test_weaviate_task_embedding():
 def test_weaviate_vector_search():
     """Test vector search functionality in Weaviate"""
     # Create schema first
+    weaviate_client = get_weaviate_client()
     weaviate_client.create_schema()
 
     # Test data - add multiple tasks

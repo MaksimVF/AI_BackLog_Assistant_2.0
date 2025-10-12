@@ -104,5 +104,12 @@ class WeaviateClient:
             return result["data"]["Get"]["Task"][0]
         return None
 
-# Create a global Weaviate client instance
-weaviate_client = WeaviateClient()
+# Create a global Weaviate client instance (lazy initialization)
+weaviate_client = None
+
+def get_weaviate_client():
+    """Get the Weaviate client instance with lazy initialization"""
+    global weaviate_client
+    if weaviate_client is None:
+        weaviate_client = WeaviateClient()
+    return weaviate_client
