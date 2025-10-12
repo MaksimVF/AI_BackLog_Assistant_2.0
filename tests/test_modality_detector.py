@@ -6,7 +6,7 @@ Test cases for Modality Detector
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.agents.input_processing.modality_detector import ModalityDetector
+from src.agents.level1.modality_detector import ModalityDetector
 
 
 
