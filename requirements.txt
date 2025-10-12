@@ -13,4 +13,5 @@ flake8==6.1.0
 httpx==0.23.0
 aiogram==3.22.0  # Telegram bot framework (compatible with Python 3.12)
 weaviate-client==3.25.0  # Weaviate vector database client
+boto3==1.40.50  # AWS SDK for S3 integration
 
