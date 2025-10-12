@@ -88,6 +88,3 @@ class ImpactPotentialAgent:
 
 # Create a global instance for easy access
 impact_potential_agent = ImpactPotentialAgent()
-
-
-

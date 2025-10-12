@@ -186,4 +186,3 @@ async def test_telegram_bot_direct_message():
         assert "Task #" in response_text
         assert "processed" in response_text
         assert "Implement user authentication system" in response_text
-

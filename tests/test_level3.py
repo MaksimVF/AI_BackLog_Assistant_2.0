@@ -93,6 +93,3 @@ def test_level3_integration():
     # Verify confidence/urgency
     assert "confidence" in result["confidence_urgency"]
     assert "urgency" in result["confidence_urgency"]
-
-
-

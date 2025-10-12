@@ -81,7 +81,3 @@ def test_weaviate_vector_search():
     # Verify results
     assert len(results) >= 2
     assert results[0]["task_id"] == "test_task_0"
-
-
-
-

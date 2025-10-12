@@ -26,4 +26,3 @@ if __name__ == "__main__":
     test_telegram_bot_import()
     test_telegram_bot_instance()
     print("✅ Telegram bot import and initialization tests passed!")
-

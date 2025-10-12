@@ -61,5 +61,3 @@ class Level3Orchestrator:
 
 # Create a global instance for easy access
 level3_orchestrator = Level3Orchestrator()
-
-

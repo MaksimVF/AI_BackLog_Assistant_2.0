@@ -161,6 +161,3 @@ async def test_telegram_task_status_api():
     async with AsyncSessionLocal() as db:
         await db.delete(task)
         await db.commit()
-
-
-

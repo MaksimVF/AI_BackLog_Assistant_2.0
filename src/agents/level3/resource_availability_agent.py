@@ -84,5 +84,3 @@ class ResourceAvailabilityAgent:
 
 # Create a global instance for easy access
 resource_availability_agent = ResourceAvailabilityAgent()
-
-
