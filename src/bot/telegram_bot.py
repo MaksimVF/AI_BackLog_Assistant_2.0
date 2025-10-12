@@ -31,6 +31,57 @@ class TelegramBot:
         self.application = None
         logger.info("Telegram Bot initialized")
 
+    async def start_polling(self):
+        """Start polling for Telegram messages"""
+        if not self.bot_token:
+            logger.error("TELEGRAM_BOT_TOKEN is not set in configuration")
+            return
+
+        # Create the Telegram application
+        self.application = Application.builder().token(self.bot_token).build()
+
+        # Add handlers
+        self.application.add_handler(CommandHandler("start", self.start_command))
+        self.application.add_handler(CommandHandler("help", self.help_command))
+        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+
+        # Start the bot
+        logger.info("Starting Telegram bot polling...")
+        await self.application.run_polling()
+
+    async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle the /start command"""
+        await update.message.reply_text("Welcome to AI Backlog Assistant! Send me a task description to get started.")
+
+    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle the /help command"""
+        help_text = (
+            "AI Backlog Assistant Bot\n"
+            "Available commands:\n"
+            "/start - Start the bot\n"
+            "/help - Show this help message\n"
+            "Just send a task description to process it"
+        )
+        await update.message.reply_text(help_text)
+
+    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle incoming text messages"""
+        message_text = update.message.text
+        user_id = str(update.message.from_user.id)
+
+        # Process the message through our workflow
+        result = await self.process_telegram_message(message_text, user_id)
+
+        # Send response
+        response_text = f"Task processed! ID: {result['task_id']}\n"
+        response_text += f"Status: {result['status']}\n"
+        if result['status'] == 'completed':
+            classification = result['result'].get('classification', 'unknown')
+            response_text += f"Classification: {classification}\n"
+            response_text += "Recommendation: " + result['result'].get('recommendation', 'No recommendation')
+
+        await update.message.reply_text(response_text)
+
     async def process_telegram_message(self, message_text: str, user_id: str = "unknown") -> Dict[str, Any]:
         """
         Process a Telegram message through the workflow
