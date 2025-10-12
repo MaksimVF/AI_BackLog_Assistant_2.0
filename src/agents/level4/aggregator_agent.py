@@ -108,6 +108,3 @@ class AggregatorAgent:
 
 # Create a global instance for easy access
 aggregator_agent = AggregatorAgent()
-
-
-

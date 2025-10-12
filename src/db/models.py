@@ -61,4 +61,3 @@ class Trigger(Base):
 
     # Relationships
     task = relationship("Task", back_populates="triggers")
-

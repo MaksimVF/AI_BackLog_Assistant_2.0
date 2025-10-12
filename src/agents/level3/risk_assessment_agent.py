@@ -98,4 +98,3 @@ class RiskAssessmentAgent:
 
 # Create a global instance for easy access
 risk_assessment_agent = RiskAssessmentAgent()
-

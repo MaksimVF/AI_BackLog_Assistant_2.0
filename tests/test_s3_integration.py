@@ -71,7 +71,3 @@ def test_s3_file_listing():
 
     # Clean up
     os.remove(tmp_path)
-
-
-
-

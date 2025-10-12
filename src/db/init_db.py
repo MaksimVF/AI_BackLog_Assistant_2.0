@@ -39,4 +39,3 @@ if __name__ == "__main__":
         await init_db()
 
     asyncio.run(main())
-

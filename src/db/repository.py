@@ -105,5 +105,3 @@ class TriggerRepository:
         """List recent triggers"""
         result = await db.execute(select(Trigger).order_by(Trigger.timestamp.desc()).limit(limit))
         return result.scalars().all()
-
-

@@ -77,6 +77,3 @@ class S3Client:
 
 # Create a global S3 client instance
 s3_client = S3Client()
-
-
-

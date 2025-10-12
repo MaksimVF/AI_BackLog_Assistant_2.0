@@ -135,8 +135,3 @@ class SummaryAgent:
 
 # Create a global instance for easy access
 summary_agent = SummaryAgent()
-
-
-
-
-

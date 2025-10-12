@@ -198,5 +198,3 @@ async def test_trigger_creation():
         await db.delete(trigger)
         await db.delete(task)
         await db.commit()
-
-

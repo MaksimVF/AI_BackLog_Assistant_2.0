@@ -172,8 +172,3 @@ async def test_database_consistency():
         await db.delete(task_file)
         await db.delete(task)
         await db.commit()
-
-
-
-
-

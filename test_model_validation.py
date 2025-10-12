@@ -80,6 +80,3 @@ def test_model_creation():
 
 if __name__ == "__main__":
     test_model_creation()
-
-
-

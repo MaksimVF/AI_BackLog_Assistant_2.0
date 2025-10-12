@@ -133,7 +133,3 @@ def test_level4_integration():
     assert "recommendation" in result["summary"]
     assert "rationale" in result["summary"]
     assert "priority" in result["summary"]
-
-
-
-

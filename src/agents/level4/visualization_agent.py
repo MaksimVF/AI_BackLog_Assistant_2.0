@@ -145,7 +145,3 @@ class VisualizationAgent:
 
 # Create a global instance for easy access
 visualization_agent = VisualizationAgent()
-
-
-
-
