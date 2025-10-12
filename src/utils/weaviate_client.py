@@ -106,5 +106,3 @@ class WeaviateClient:
 
 # Create a global Weaviate client instance
 weaviate_client = WeaviateClient()
-
-
