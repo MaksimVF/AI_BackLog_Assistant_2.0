@@ -92,6 +92,8 @@ To use the Telegram bot functionality:
    python -m src.bot.telegram_bot
    ```
 
+   Note: If you don't have a valid Telegram token, the bot will run in mock mode and won't connect to Telegram servers.
+
 ## Development
 
 Follow the conventions in [conventions.md](conventions.md) and the workflow in [workflow.md](workflow.md).
