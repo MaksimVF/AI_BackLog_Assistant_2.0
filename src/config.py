@@ -37,6 +37,10 @@ class Config:
     # Telegram
     TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
+    @property
+    def telegram_api_key(self):
+        return os.getenv('Telegram_API_Key', self.TELEGRAM_TOKEN)
+
     # Mistral API
     MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
     MISTRAL_API_URL = os.getenv('MISTRAL_API_URL', 'https://api.mistral.ai/v1')
