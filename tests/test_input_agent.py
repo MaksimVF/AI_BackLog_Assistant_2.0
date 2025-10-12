@@ -6,7 +6,7 @@ Test cases for Input Agent
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.agents.input_processing.input_agent import InputAgent, InputData
+from src.agents.level1.input_agent import InputAgent, InputData
 
 
 
