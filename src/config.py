@@ -35,7 +35,7 @@ class Config:
     S3_ENDPOINT = os.getenv('S3_ENDPOINT', 'https://s3.timeweb.cloud')
 
     # Telegram
-    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+    TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
     # Mistral API
     MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY')
