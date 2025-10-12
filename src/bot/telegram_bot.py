@@ -32,7 +32,7 @@ class TelegramBot:
         logger.info("Telegram Bot initialized")
 
         # Initialize Telegram bot and dispatcher
-        self.bot = Bot(token=os.getenv("Telegram_API_Key", config.telegram_api_key))
+        self.bot = Bot(token=config.telegram_api_key)
         self.dp = Dispatcher()
 
         # Register handlers

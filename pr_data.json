@@ -1,0 +1,6 @@
+{
+  "title": "Telegram bot integration",
+  "head": "telegram-bot-integration",
+  "base": "main",
+  "body": "Implement Telegram bot integration with aiogram"
+}
