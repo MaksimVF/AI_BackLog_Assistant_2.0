@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv('.env.dev')
+load_dotenv('.env')
 
 
 
@@ -35,7 +35,7 @@ class Config:
     S3_ENDPOINT = os.getenv('S3_ENDPOINT', 'https://s3.timeweb.cloud')
 
     # Telegram
-    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+    TELEGRAM_TOKEN = "AIBLA"  # Mock token for testing
 
     @property
     def telegram_api_key(self):
