@@ -33,12 +33,24 @@ class TelegramBot:
 
         # Initialize Telegram bot and dispatcher
         telegram_token = config.telegram_api_key
-        if not telegram_token or telegram_token == "AIBLA":
-            logger.warning("Telegram token not configured or invalid, using mock mode")
+        if not telegram_token:
+            logger.error("Telegram token not configured, using mock mode")
+            logger.error("Please set a valid Telegram token in your .env file")
+            logger.error("You can get a token by creating a new bot with BotFather in Telegram")
             # In mock mode, we'll still initialize but won't actually connect
             self.bot = None
-        else:
+        elif telegram_token == "AIBLA":
+            logger.error("Using mock Telegram token 'AIBLA' - bot will try to connect but may fail")
+            logger.error("Please replace 'AIBLA' with your real Telegram bot token in .env file")
             self.bot = Bot(token=telegram_token)
+        elif telegram_token.startswith('your_'):
+            logger.error(f"Using placeholder token: {telegram_token}")
+            logger.error("Please replace this with your real Telegram bot token in .env file")
+            self.bot = Bot(token=telegram_token)
+        else:
+            logger.info(f"Using valid Telegram token: {telegram_token[:5]}...")
+            self.bot = Bot(token=telegram_token)
+
         self.dp = Dispatcher()
 
         # Register handlers
@@ -50,8 +62,11 @@ class TelegramBot:
         self.dp.message.register(self.handle_archive, Command(commands=["archive"]))
         self.dp.message.register(self.handle_direct_message)
 
+        logger.info("Telegram bot handlers registered successfully")
+
     async def handle_start(self, message: Message):
         """Handle the /start command"""
+        logger.info(f"Received /start command from user {message.from_user.id}")
         welcome_text = (
             "Welcome to AI Backlog Assistant! 🚀\n\n"
             "I help you manage and prioritize your development tasks. Here are the available commands:\n\n"
@@ -63,9 +78,11 @@ class TelegramBot:
             "You can also just send me a task description directly!"
         )
         await message.answer(welcome_text)
+        logger.info("Sent welcome message to user")
 
     async def handle_help(self, message: Message):
         """Handle the /help command"""
+        logger.info(f"Received /help command from user {message.from_user.id}")
         help_text = (
             "AI Backlog Assistant Help 📚\n\n"
             "Available commands:\n"
@@ -80,6 +97,7 @@ class TelegramBot:
             "Just type: Implement user authentication system"
         )
         await message.answer(help_text)
+        logger.info("Sent help message to user")
 
     async def handle_add(self, message: Message):
         """Handle the /add command"""
@@ -88,12 +106,20 @@ class TelegramBot:
             task_text = message.text[len("/add "):].strip()
 
             if not task_text:
+                logger.warning(f"User {message.from_user.id} sent /add command without task description")
                 await message.answer("Please provide a task description after /add")
                 return
+
+            logger.info(f"Received /add command from user {message.from_user.id} with task: {task_text[:50]}...")
 
             # Process the task
             user_id = str(message.from_user.id)
             result = await self.process_telegram_message(task_text, user_id)
+
+            if result.get('status') == 'failed':
+                logger.error(f"Failed to process /add command: {result.get('error')}")
+                await message.answer(f"❌ Error processing your request: {result.get('error')}")
+                return
 
             response = (
                 f"Task #{result['task_id']} added successfully! ✅\n\n"
@@ -102,6 +128,7 @@ class TelegramBot:
                 f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
             )
             await message.answer(response)
+            logger.info(f"Successfully added task {result['task_id']} for user {user_id}")
 
         except Exception as e:
             logger.error(f"Error handling /add command: {e}")
@@ -113,17 +140,23 @@ class TelegramBot:
             # Extract task ID from the command
             parts = message.text.split()
             if len(parts) < 2:
+                logger.warning(f"User {message.from_user.id} sent /status command without task ID")
                 await message.answer("Please provide a task ID after /status")
                 return
 
             task_id = parts[1]
+            logger.info(f"Received /status command from user {message.from_user.id} for task {task_id}")
+
             result = await self.get_task_status(task_id)
 
             if result["status"] == "not_found":
+                logger.warning(f"Task {task_id} not found for user {message.from_user.id}")
                 response = f"Task #{task_id} not found. Please check the ID and try again."
             elif result["status"] == "error":
+                logger.error(f"Error getting status for task {task_id}: {result['error']}")
                 response = f"❌ Error getting task status: {result['error']}"
             else:
+                logger.info(f"Found task {task_id} with status {result['status']}")
                 response = (
                     f"Task #{task_id} Status 📋\n\n"
                     f"Status: {result['status']}\n"
@@ -134,6 +167,7 @@ class TelegramBot:
                 )
 
             await message.answer(response)
+            logger.info(f"Sent status response for task {task_id} to user {message.from_user.id}")
 
         except Exception as e:
             logger.error(f"Error handling /status command: {e}")
@@ -142,13 +176,17 @@ class TelegramBot:
     async def handle_list(self, message: Message):
         """Handle the /list command"""
         try:
+            logger.info(f"Received /list command from user {message.from_user.id}")
             result = await self.list_tasks()
 
             if "error" in result and result["error"]:
+                logger.error(f"Error listing tasks for user {message.from_user.id}: {result['error']}")
                 response = f"❌ Error listing tasks: {result['error']}"
             elif not result["tasks"]:
+                logger.info(f"No recent tasks found for user {message.from_user.id}")
                 response = "You have no recent tasks."
             else:
+                logger.info(f"Found {len(result['tasks'])} tasks for user {message.from_user.id}")
                 response = "Your Recent Tasks 📝:\n\n"
                 for task in result["tasks"]:
                     response += (
@@ -158,6 +196,7 @@ class TelegramBot:
                     )
 
             await message.answer(response)
+            logger.info(f"Sent list of tasks to user {message.from_user.id}")
 
         except Exception as e:
             logger.error(f"Error handling /list command: {e}")
@@ -169,17 +208,23 @@ class TelegramBot:
             # Extract task ID from the command
             parts = message.text.split()
             if len(parts) < 2:
+                logger.warning(f"User {message.from_user.id} sent /archive command without task ID")
                 await message.answer("Please provide a task ID after /archive")
                 return
 
             task_id = parts[1]
+            logger.info(f"Received /archive command from user {message.from_user.id} for task {task_id}")
+
             result = await self.get_task_archive(task_id)
 
             if result["status"] == "not_found":
+                logger.warning(f"Task {task_id} not found for user {message.from_user.id}")
                 response = f"Task #{task_id} not found. Please check the ID and try again."
             elif result["status"] == "error":
+                logger.error(f"Error getting archive for task {task_id}: {result['error']}")
                 response = f"❌ Error getting task archive: {result['error']}"
             else:
+                logger.info(f"Found archive for task {task_id}")
                 response = (
                     f"Task #{task_id} Archive 🗄️\n\n"
                     f"Original Input: {result['original_input']}\n\n"
@@ -198,6 +243,7 @@ class TelegramBot:
                         response += f"  - {file_url}\n"
 
             await message.answer(response)
+            logger.info(f"Sent archive response for task {task_id} to user {message.from_user.id}")
 
         except Exception as e:
             logger.error(f"Error handling /archive command: {e}")
@@ -210,9 +256,16 @@ class TelegramBot:
             if message.text and message.text.startswith('/'):
                 return  # Skip, let other handlers process commands
 
+            logger.info(f"Received direct message: {message.text[:50]}...")
+
             # Process as a task
             user_id = str(message.from_user.id)
             result = await self.process_telegram_message(message.text, user_id)
+
+            if result.get('status') == 'failed':
+                logger.error(f"Failed to process message: {result.get('error')}")
+                await message.answer(f"❌ Error processing your message: {result.get('error')}")
+                return
 
             response = (
                 f"Task #{result['task_id']} processed! ✅\n\n"
@@ -221,6 +274,7 @@ class TelegramBot:
                 f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
             )
             await message.answer(response)
+            logger.info(f"Successfully processed task {result['task_id']}")
 
         except Exception as e:
             logger.error(f"Error handling direct message: {e}")
@@ -238,6 +292,8 @@ class TelegramBot:
             Processed result
         """
         try:
+            logger.info(f"Processing Telegram message from user {user_id}: {message_text[:50]}...")
+
             # Create metadata for the task
             metadata = {
                 "source": "telegram",
@@ -251,6 +307,7 @@ class TelegramBot:
 
             # Generate a simple task ID
             task_id = f"task_{hash(message_text) % 1000000}"
+            logger.info(f"Generated task ID: {task_id}")
 
             # Store in database
             async with AsyncSessionLocal() as db:
@@ -270,6 +327,7 @@ class TelegramBot:
                 }
 
                 await TaskRepository.create_task(db, task_data)
+                logger.info(f"Successfully stored task {task_id} in database")
 
             return {
                 "task_id": task_id,
@@ -296,16 +354,19 @@ class TelegramBot:
             Task status information
         """
         try:
+            logger.info(f"Getting status for task {task_id}")
             async with AsyncSessionLocal() as db:
                 task = await TaskRepository.get_task_by_task_id(db, task_id)
 
                 if not task:
+                    logger.warning(f"Task {task_id} not found")
                     return {
                         "task_id": task_id,
                         "status": "not_found",
                         "error": "Task not found"
                     }
 
+                logger.info(f"Found task {task_id} with status {task.status}")
                 return {
                     "task_id": task.task_id,
                     "status": task.status,
@@ -316,7 +377,7 @@ class TelegramBot:
                 }
 
         except Exception as e:
-            logger.error(f"Error getting task status: {e}")
+            logger.error(f"Error getting task status for task {task_id}: {e}")
             return {
                 "task_id": task_id,
                 "status": "error",
@@ -331,9 +392,15 @@ class TelegramBot:
             List of recent tasks
         """
         try:
+            logger.info("Listing recent tasks")
             async with AsyncSessionLocal() as db:
                 tasks = await TaskRepository.list_tasks(db, limit=10)
 
+                if not tasks:
+                    logger.info("No recent tasks found")
+                    return {"tasks": []}
+
+                logger.info(f"Found {len(tasks)} recent tasks")
                 formatted_tasks = []
                 for task in tasks:
                     formatted_tasks.append({
@@ -363,10 +430,12 @@ class TelegramBot:
             Task archive details
         """
         try:
+            logger.info(f"Getting archive for task {task_id}")
             async with AsyncSessionLocal() as db:
                 task = await TaskRepository.get_task_by_task_id(db, task_id)
 
                 if not task:
+                    logger.warning(f"Task {task_id} not found")
                     return {
                         "task_id": task_id,
                         "status": "not_found",
@@ -377,6 +446,7 @@ class TelegramBot:
                 files = await TaskFileRepository.get_files_by_task_id(db, task_id)
                 file_urls = [file.file_url for file in files]
 
+                logger.info(f"Found archive for task {task_id} with {len(file_urls)} files")
                 return {
                     "task_id": task.task_id,
                     "status": task.status,
@@ -393,7 +463,7 @@ class TelegramBot:
                 }
 
         except Exception as e:
-            logger.error(f"Error getting task archive: {e}")
+            logger.error(f"Error getting archive for task {task_id}: {e}")
             return {
                 "task_id": task_id,
                 "status": "error",
@@ -403,11 +473,21 @@ class TelegramBot:
     async def start_polling(self):
         """Start polling for Telegram messages"""
         if self.bot is None:
-            logger.warning("Cannot start polling: Telegram bot is in mock mode")
+            logger.error("Cannot start polling: Telegram bot is in mock mode")
+            logger.error("Please set a valid Telegram token in your .env file")
+            logger.error("You can get a token by creating a new bot with BotFather in Telegram")
             return
 
         logger.info("Starting Telegram bot polling...")
-        await self.dp.start_polling(self.bot)
+        try:
+            logger.info("Attempting to connect to Telegram servers...")
+            await self.dp.start_polling(self.bot)
+            logger.info("Telegram bot polling started successfully")
+        except Exception as e:
+            logger.error(f"Error starting Telegram bot polling: {e}")
+            logger.error("Please check your Telegram token and network connection")
+            logger.error("If you're using a mock token, replace it with a real token in your .env file")
+            logger.error("You can get a real token by creating a new bot with BotFather in Telegram")
 
 # Create a global instance
 telegram_bot = TelegramBot()

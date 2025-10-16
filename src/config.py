@@ -3,7 +3,35 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv('.env')
+# First try to load .env, if it doesn't exist or is missing variables, load .env.dev
+if os.path.exists('.env'):
+    load_dotenv('.env')
+    # Check if we have a valid Telegram token
+    if not os.getenv('TELEGRAM_TOKEN') or os.getenv('TELEGRAM_TOKEN') == 'AIBLA' or os.getenv('TELEGRAM_TOKEN').startswith('your_'):
+        # If token is invalid, try to load from .env.dev
+        if os.path.exists('.env.dev'):
+            load_dotenv('.env.dev')
+else:
+    # If .env doesn't exist, try to load from .env.dev
+    if os.path.exists('.env.dev'):
+        load_dotenv('.env.dev')
+
+# Check if we have a valid Telegram token
+telegram_token = os.getenv('TELEGRAM_TOKEN')
+if not telegram_token:
+    print("⚠️  WARNING: Telegram token is not set!")
+    print("   Please set a valid Telegram token in your .env file")
+    print("   You can get a token by creating a new bot with BotFather in Telegram")
+elif telegram_token == 'AIBLA':
+    print("⚠️  WARNING: Using mock Telegram token 'AIBLA'")
+    print("   Please replace 'AIBLA' with your real Telegram bot token in .env file")
+    print("   The bot will attempt to connect but will fail with this token")
+elif telegram_token.startswith('your_'):
+    print("⚠️  WARNING: Using placeholder Telegram token")
+    print("   Please replace 'your_real_telegram_token_here' with your real Telegram bot token in .env file")
+    print("   The bot will attempt to connect but will fail with this token")
+else:
+    print("✅ Telegram token is set correctly")
 
 
 
