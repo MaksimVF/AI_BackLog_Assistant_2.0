@@ -35,6 +35,18 @@ async def test_telegram_bot_start_command():
     mock_message.text = "/start"
     mock_message.answer = AsyncMock()
 
+    # Mock the from_user and chat attributes
+    mock_from_user = AsyncMock()
+    mock_from_user.id = 12345
+    mock_from_user.username = "testuser"
+    mock_message.from_user = mock_from_user
+
+    mock_chat = AsyncMock()
+    mock_chat.id = 67890
+    mock_message.chat = mock_chat
+
+    mock_message.message_id = 111
+
     # Call the handler
     await bot.handle_start(mock_message)
 
@@ -54,6 +66,18 @@ async def test_telegram_bot_help_command():
     mock_message = AsyncMock(spec=Message)
     mock_message.text = "/help"
     mock_message.answer = AsyncMock()
+
+    # Mock the from_user and chat attributes
+    mock_from_user = AsyncMock()
+    mock_from_user.id = 12345
+    mock_from_user.username = "testuser"
+    mock_message.from_user = mock_from_user
+
+    mock_chat = AsyncMock()
+    mock_chat.id = 67890
+    mock_message.chat = mock_chat
+
+    mock_message.message_id = 112
 
     # Call the handler
     await bot.handle_help(mock_message)
@@ -116,6 +140,18 @@ async def test_telegram_bot_status_command():
     mock_message.text = "/status 123"
     mock_message.answer = AsyncMock()
 
+    # Mock the from_user and chat attributes
+    mock_from_user = AsyncMock()
+    mock_from_user.id = 12345
+    mock_from_user.username = "testuser"
+    mock_message.from_user = mock_from_user
+
+    mock_chat = AsyncMock()
+    mock_chat.id = 67890
+    mock_message.chat = mock_chat
+
+    mock_message.message_id = 113
+
     # Mock the database
     with patch("src.bot.telegram_bot.TaskRepository.get_task_by_task_id") as mock_get_task:
         # Create a mock task
@@ -147,6 +183,18 @@ async def test_telegram_bot_list_command():
     mock_message = AsyncMock(spec=Message)
     mock_message.text = "/list"
     mock_message.answer = AsyncMock()
+
+    # Mock the from_user and chat attributes
+    mock_from_user = AsyncMock()
+    mock_from_user.id = 12345
+    mock_from_user.username = "testuser"
+    mock_message.from_user = mock_from_user
+
+    mock_chat = AsyncMock()
+    mock_chat.id = 67890
+    mock_message.chat = mock_chat
+
+    mock_message.message_id = 114
 
     # Mock the database
     with patch("src.bot.telegram_bot.TaskRepository.list_tasks") as mock_list_tasks:
@@ -184,6 +232,18 @@ async def test_telegram_bot_archive_command():
     mock_message = AsyncMock(spec=Message)
     mock_message.text = "/archive 123"
     mock_message.answer = AsyncMock()
+
+    # Mock the from_user and chat attributes
+    mock_from_user = AsyncMock()
+    mock_from_user.id = 12345
+    mock_from_user.username = "testuser"
+    mock_message.from_user = mock_from_user
+
+    mock_chat = AsyncMock()
+    mock_chat.id = 67890
+    mock_message.chat = mock_chat
+
+    mock_message.message_id = 115
 
     # Mock the database
     with patch("src.bot.telegram_bot.TaskRepository.get_task_by_task_id") as mock_get_task, \
