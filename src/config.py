@@ -63,7 +63,7 @@ class Config:
     S3_ENDPOINT = os.getenv('S3_ENDPOINT', 'https://s3.timeweb.cloud')
 
     # Telegram
-    TELEGRAM_TOKEN = "AIBLA"  # Mock token for testing
+    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', "AIBLA")  # Default to mock token if not set
 
     @property
     def telegram_api_key(self):
