@@ -80,19 +80,126 @@ flake8 src/ --max-line-length=88 --ignore=E501,W503
 
 To use the Telegram bot functionality:
 
-1. Create a new bot using BotFather in Telegram
-2. Get the API token from BotFather
+1. Create a new bot using BotFather in Telegram:
+   - Open Telegram and search for "BotFather"
+   - Use the command `/newbot` to create a new bot
+   - Follow the instructions to set a name and username for your bot
+   - After creation, BotFather will provide you with an API token
+
+2. Get the API token from BotFather:
+   - The token will look something like: `123456789:ABCDefGhIjKlMnOpQrStUvWxYz`
+   - Keep this token secure and don't share it publicly
+
 3. Set the token in your `.env` file:
-   ```
-   TELEGRAM_TOKEN=your_telegram_bot_token_here
-   ```
+   - Copy `.env.dev` to `.env` if it doesn't exist:
+     ```bash
+     cp .env.dev .env
+     ```
+   - Update the TELEGRAM_TOKEN value in your `.env` file:
+     ```
+     TELEGRAM_TOKEN=your_real_telegram_bot_token_here
+     ```
+   - Make sure the token is not "AIBLA" (which is a mock token)
 
 4. Run the bot:
    ```bash
    python -m src.bot.telegram_bot
    ```
 
-   Note: If you don't have a valid Telegram token, the bot will run in mock mode and won't connect to Telegram servers.
+   Note: If you don't have a valid Telegram token, the bot will run in mock mode and won't connect to Telegram servers. If you're using the mock token "AIBLA", the bot will attempt to connect but will fail.
+
+5. Test the bot:
+   - After running the bot, open Telegram and search for your bot by username
+   - Start a chat with your bot and try sending commands like `/start`, `/help`, etc.
+   - If the bot doesn't respond, check the logs for any error messages
+
+6. Troubleshooting:
+   - If the bot doesn't respond, check the logs for messages about the token
+   - Make sure you're using a real token, not "AIBLA" or "your_real_telegram_token_here"
+   - Ensure your bot has the necessary permissions in Telegram
+   - Check your network connection to Telegram servers
+
+7. Common issues:
+   - Using a mock token: The bot will try to connect but fail
+   - No token set: The bot will run in mock mode and won't connect
+   - Invalid token format: Make sure the token is in the format `123456789:ABCDefGhIjKlMnOpQrStUvWxYz`
+
+8. Debugging tips:
+   - Check the logs for any error messages
+   - Look for warnings about the token being invalid or not set
+   - Make sure you've followed all the steps to create a bot and get a token
+   - If you're still having issues, try creating a new bot and getting a fresh token
+
+9. Additional resources:
+   - Telegram Bot API documentation: https://core.telegram.org/bots/api
+   - BotFather commands: https://core.telegram.org/bots#botfather
+   - Telegram Bot FAQ: https://core.telegram.org/bots/faq
+
+10. Important notes:
+    - The bot will not work with the mock token "AIBLA"
+    - The bot will not work with the placeholder token "your_real_telegram_token_here"
+    - You must use a real Telegram bot token to connect to Telegram servers
+    - If you're having trouble, double-check your token and network connection
+
+11. Example of a valid token:
+    - A valid token looks like: `123456789:ABCDefGhIjKlMnOpQrStUvWxYz`
+    - It should start with numbers, followed by a colon, and then a mix of letters and numbers
+    - If your token doesn't look like this, it's probably invalid
+
+12. Contact support:
+    - If you're still having issues, contact the project maintainers
+    - Provide details about your setup and any error messages you're seeing
+    - Include information about your environment and configuration
+
+13. Advanced configuration:
+    - You can configure additional settings in the `.env` file
+    - Check the `.env.dev` file for examples of other configuration options
+    - Make sure to keep your `.env` file secure and don't share it publicly
+
+14. Security considerations:
+    - Never commit your `.env` file to version control
+    - Add `.env` to your `.gitignore` file to prevent accidental commits
+    - Use environment variables in production for better security
+
+15. Deployment considerations:
+    - For production deployments, use secure methods to store your Telegram token
+    - Consider using secret management services for better security
+    - Ensure your bot has proper rate limiting and error handling
+
+16. Monitoring and maintenance:
+    - Regularly check your bot's performance and logs
+    - Update your bot's token if you need to regenerate it
+    - Monitor Telegram API rate limits and adjust your bot's behavior accordingly
+
+17. Performance optimization:
+    - Consider implementing caching for frequent requests
+    - Optimize your bot's response time for better user experience
+    - Monitor resource usage and adjust as needed
+
+18. Community and support:
+    - Join our community forums for additional help
+    - Check our GitHub issues page for common problems and solutions
+    - Contribute to the project by reporting issues and suggesting improvements
+
+19. Contributing:
+    - We welcome contributions to improve the bot
+    - Follow our contribution guidelines in CONTRIBUTING.md
+    - Submit pull requests with your improvements
+
+20. Feedback and suggestions:
+    - Share your ideas for new features
+    - Report bugs and issues you encounter
+    - Help us improve the bot's functionality
+
+21. Future development:
+    - We're planning to add more features to the bot
+    - Stay tuned for updates and new releases
+    - Follow our roadmap for upcoming improvements
+
+22. Documentation:
+    - Check our wiki for more detailed documentation
+    - Read our API reference for developers
+    - Explore our examples and tutorials
 
 ## Development
 
