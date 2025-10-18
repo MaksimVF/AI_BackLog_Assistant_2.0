@@ -15,12 +15,19 @@ from src.config import Config
 config = Config()
 
 # Async database engine
-async_engine = create_async_engine(
-    config.POSTGRES_URL,
-    echo=False,
-    pool_size=10,
-    max_overflow=20
-)
+if "sqlite" in config.POSTGRES_URL:
+    async_engine = create_async_engine(
+        config.POSTGRES_URL,
+        echo=False,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    async_engine = create_async_engine(
+        config.POSTGRES_URL,
+        echo=False,
+        pool_size=10,
+        max_overflow=20
+    )
 
 # Async session maker
 AsyncSessionLocal = sessionmaker(
