@@ -80,7 +80,7 @@ class Config:
     def POSTGRES_URL(self):
         # Use SQLite for testing if no PostgreSQL credentials are provided
         if self.POSTGRES_USER == 'devuser' and self.POSTGRES_PASSWORD == 'devpass':
-            return "sqlite+aiosqlite:///./test_ai_backlog.db"
+            return "sqlite+aiosqlite:///test_ai_backlog.db"
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     @property
