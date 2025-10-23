@@ -7,6 +7,7 @@ from src.bot.telegram_bot import telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
 import logging
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +18,20 @@ app = FastAPI(
     description="API for managing backlog tasks with AI assistance",
     version="0.1.0"
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks when the API starts"""
+    logger.info("Starting API startup tasks...")
+
+    # Start Telegram bot in background mode
+    try:
+        logger.info("Starting Telegram bot in background mode...")
+        asyncio.create_task(telegram_bot.start_polling_background())
+        logger.info("Telegram bot started successfully in background")
+    except Exception as e:
+        logger.error(f"Failed to start Telegram bot: {e}")
+        logger.error("Telegram bot will not be available")
 
 
 

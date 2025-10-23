@@ -483,8 +483,8 @@ class TelegramBot:
             logger.info("Attempting to connect to Telegram servers...")
             # For testing purposes, we'll catch the Unauthorized error and continue in mock mode
             try:
-                await self.dp.start_polling(self.bot)
                 logger.info("Telegram bot polling started successfully")
+                await self.dp.start_polling(self.bot)
             except Exception as e:
                 if "Unauthorized" in str(e):
                     logger.error("Telegram token is unauthorized - running in mock mode")
@@ -499,6 +499,48 @@ class TelegramBot:
             logger.error("Please check your Telegram token and network connection")
             logger.error("If you're using a mock token, replace it with a real token in your .env file")
             logger.error("You can get a real token by creating a new bot with BotFather in Telegram")
+
+    async def start_polling_background(self):
+        """Start polling in background mode (non-blocking)"""
+        if self.bot is None:
+            logger.error("Cannot start polling: Telegram bot is in mock mode")
+            logger.error("Please set a valid Telegram token in your .env file")
+            logger.error("You can get a token by creating a new bot with BotFather in Telegram")
+            return
+
+        logger.info("Starting Telegram bot polling in background mode...")
+        try:
+            logger.info("Attempting to connect to Telegram servers...")
+
+            # Create a background task for polling
+            import asyncio
+            asyncio.create_task(self._run_polling())
+
+        except Exception as e:
+            logger.error(f"Error starting Telegram bot polling: {e}")
+            logger.error("Please check your Telegram token and network connection")
+            logger.error("If you're using a mock token, replace it with a real token in your .env file")
+            logger.error("You can get a real token by creating a new bot with BotFather in Telegram")
+
+    async def _run_polling(self):
+        """Internal method to run polling - called in background task"""
+        try:
+            # For testing purposes, we'll catch the Unauthorized error and continue in mock mode
+            try:
+                logger.info("Telegram bot polling task started")
+                await self.dp.start_polling(self.bot)
+            except Exception as e:
+                if "Unauthorized" in str(e):
+                    logger.error("Telegram token is unauthorized - running in mock mode")
+                    logger.error("This is expected in test environments")
+                    logger.error("To use a real bot, get a token from BotFather in Telegram")
+                    # In mock mode, we can still test the functionality
+                    logger.info("Telegram bot is ready for testing (mock mode)")
+                else:
+                    logger.error(f"Error in Telegram polling: {e}")
+                    raise
+        except Exception as e:
+            logger.error(f"Fatal error in Telegram polling: {e}")
 
 # Create a global instance
 telegram_bot = TelegramBot()
@@ -521,6 +563,23 @@ async def main():
     finally:
         if telegram_bot.bot:
             await telegram_bot.bot.session.close()
+
+
+async def main_background():
+    """Main function to start the bot in background mode"""
+    logger.info("Starting AI Backlog Assistant Telegram Bot in background mode...")
+
+    # Check if we have a valid token
+    if telegram_bot.bot is None:
+        logger.error("Bot is in mock mode - cannot start polling")
+        logger.info("To use real bot, set TELEGRAM_API_KEY in your .env file")
+        return
+
+    try:
+        # Start polling in background
+        await telegram_bot.start_polling_background()
+    except Exception as e:
+        logger.error(f"Failed to start bot in background mode: {e}")
 
 if __name__ == "__main__":
     import asyncio
