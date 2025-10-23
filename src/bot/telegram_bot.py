@@ -502,3 +502,26 @@ class TelegramBot:
 
 # Create a global instance
 telegram_bot = TelegramBot()
+
+async def main():
+    """Main function to start the bot"""
+    logger.info("Starting AI Backlog Assistant Telegram Bot...")
+    
+    # Check if we have a valid token
+    if telegram_bot.bot is None:
+        logger.error("Bot is in mock mode - cannot start polling")
+        logger.info("To use real bot, set TELEGRAM_API_KEY in your .env file")
+        return
+    
+    try:
+        # Start polling
+        await telegram_bot.start_polling()
+    except Exception as e:
+        logger.error(f"Failed to start bot: {e}")
+    finally:
+        if telegram_bot.bot:
+            await telegram_bot.bot.session.close()
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
