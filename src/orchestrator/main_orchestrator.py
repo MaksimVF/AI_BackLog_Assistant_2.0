@@ -39,29 +39,29 @@ class MainOrchestrator:
         Returns:
             Complete processing results
         """
-        logger.info(f"🔄 Starting workflow processing for: {input_data[:50]}...")
+        logger.debug(f"Starting workflow processing for: {input_data[:50]}...")
 
         # Step 1: Level 1 Processing
-        logger.info("📥 LEVEL 1: Input Processing")
+        logger.debug("Level 1: Input Processing")
         level1_result = level1_orchestrator.process_input(input_data, metadata)
-        logger.info(f"✅ Level 1 completed - Modality: {level1_result.get('modality', 'unknown')}")
+        logger.debug(f"Level 1 completed - Modality: {level1_result.get('modality', 'unknown')}")
 
         # Step 2: Level 2 Analysis
-        logger.info("🔍 LEVEL 2: Text Analysis")
+        logger.debug("Level 2: Text Analysis")
         level2_result = level2_orchestrator.analyze_text(level1_result["content"])
-        logger.info(f"✅ Level 2 completed - Sentiment: {level2_result.get('sentiment', 'N/A')}")
+        logger.debug(f"Level 2 completed - Sentiment: {level2_result.get('sentiment', 'N/A')}")
 
         # Step 3: Level 3 Analysis
-        logger.info("📊 LEVEL 3: Task Analysis")
+        logger.debug("Level 3: Task Analysis")
         level3_result = level3_orchestrator.analyze_task(level1_result["content"])
-        logger.info(f"✅ Level 3 completed - Classification: {level3_result.get('classification', 'N/A')}")
+        logger.debug(f"Level 3 completed - Classification: {level3_result.get('classification', 'N/A')}")
 
         # Step 4: Level 4 Recommendations
-        logger.info("💡 LEVEL 4: Recommendations")
+        logger.debug("Level 4: Recommendations")
         level4_result = level4_orchestrator.process_recommendations(level3_result)
-        logger.info(f"✅ Level 4 completed - Recommendation: {level4_result.get('recommendation', 'N/A')}")
+        logger.debug(f"Level 4 completed - Recommendation: {level4_result.get('recommendation', 'N/A')}")
 
-        logger.info("🎯 Workflow processing completed successfully")
+        logger.debug("Workflow processing completed successfully")
 
         # Combine results
         return {

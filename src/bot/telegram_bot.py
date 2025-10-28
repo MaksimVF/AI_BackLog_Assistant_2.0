@@ -324,10 +324,11 @@ class TelegramBot:
             # Process through the workflow
             result = main_orchestrator.process_workflow(message_text, metadata)
 
-            # Generate a unique task ID based on timestamp and message content
+            # Generate a unique task ID based on timestamp and message content (optimized)
             import time
             import hashlib
-            unique_hash = hashlib.md5(f"{message_text}-{time.time()}-{user_id}".encode()).hexdigest()[:6]
+            # Use a faster hash method and reduce operations
+            unique_hash = hashlib.md5(f"{message_text[:50]}-{time.time_ns() % 1000000}-{user_id[:10]}".encode()).hexdigest()[:6]
             task_id = f"task_{unique_hash}"
             logger.info(f"Generated task ID: {task_id}")
 
