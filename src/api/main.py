@@ -6,6 +6,7 @@ from src.orchestrator.main_orchestrator import main_orchestrator
 from src.bot.telegram_bot import telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
+from src.utils.connection_checker import connection_checker
 import logging
 import asyncio
 
@@ -24,14 +25,22 @@ async def startup_event():
     """Start background tasks when the API starts"""
     logger.info("Starting API startup tasks...")
 
+    # Check external service connections
+    try:
+        logger.info("🔌 Checking external service connections...")
+        connection_status = await connection_checker.check_all_connections()
+        logger.info(f"📊 Connection status: {connection_status}")
+    except Exception as e:
+        logger.error(f"❌ Failed to check connections: {e}")
+
     # Start Telegram bot in background mode
     try:
-        logger.info("Starting Telegram bot in background mode...")
+        logger.info("🤖 Starting Telegram bot in background mode...")
         asyncio.create_task(telegram_bot.start_polling_background())
-        logger.info("Telegram bot started successfully in background")
+        logger.info("✅ Telegram bot started successfully in background")
     except Exception as e:
-        logger.error(f"Failed to start Telegram bot: {e}")
-        logger.error("Telegram bot will not be available")
+        logger.error(f"❌ Failed to start Telegram bot: {e}")
+        logger.error("⚠️ Telegram bot will not be available")
 
 
 
@@ -65,7 +74,28 @@ async def read_root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "version": "0.1.0"}
+    """Check system health including external connections"""
+    try:
+        # Check connections
+        connection_status = await connection_checker.check_all_connections()
+
+        # Determine overall status
+        all_connected = all(status.get("connected", False) for status in connection_status.values())
+        status = "healthy" if all_connected else "degraded"
+
+        return {
+            "status": status,
+            "version": "0.1.0",
+            "connections": connection_status
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "version": "0.1.0",
+            "error": str(e)
+        }
 
 @app.post("/tasks", response_model=TaskResponse)
 async def create_task(request: TaskRequest):
