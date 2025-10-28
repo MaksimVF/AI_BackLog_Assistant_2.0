@@ -50,8 +50,13 @@ class DuplicateDetector:
 
             # Get recent tasks for this user
             async with AsyncSessionLocal() as db:
-                # For now, just return no duplicates since we need to fix the query
-                recent_tasks = []
+                try:
+                    recent_tasks = await TaskRepository.get_recent_tasks_by_user(
+                        db, user_id, time_threshold
+                    )
+                except Exception as e:
+                    logger.error(f"Error getting recent tasks: {e}")
+                    recent_tasks = []
 
                 if not recent_tasks:
                     return result

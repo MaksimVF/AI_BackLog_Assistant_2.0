@@ -50,17 +50,21 @@ class ConnectionChecker:
         return result
 
     async def _check_database_connection(self) -> Dict[str, Any]:
-        """Check database connection"""
+        """Check database connection with timeout"""
         try:
+            # Add timeout to prevent hanging
             async with AsyncSessionLocal() as db:
                 # Try a simple query to test connection
-                result = await db.execute("SELECT 1")
+                result = await asyncio.wait_for(db.execute("SELECT 1"), timeout=5.0)
                 await result.scalar()
                 logger.info("✅ Database connection successful")
-                return {"connected": True, "error": None}
+                return {"connected": True, "error": None, "details": "Connection established, query successful"}
+        except asyncio.TimeoutError:
+            logger.error("❌ Database connection timed out after 5 seconds")
+            return {"connected": False, "error": "Connection timeout", "details": "Database did not respond within 5 seconds"}
         except Exception as e:
             logger.error(f"❌ Database connection failed: {e}")
-            return {"connected": False, "error": str(e)}
+            return {"connected": False, "error": str(e), "details": "Unexpected database error"}
 
     async def _check_llm_connection(self) -> Dict[str, Any]:
         """Check LLM model connection"""
