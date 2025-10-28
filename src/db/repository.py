@@ -58,6 +58,17 @@ class TaskRepository:
         return result.scalars().all()
 
     @staticmethod
+    async def get_recent_tasks_by_user(db: AsyncSession, user_id: str, since_time: datetime) -> List[Task]:
+        """Get recent tasks by user since a specific time"""
+        result = await db.execute(
+            select(Task)
+            .filter(Task.metadata["user_id"].as_string() == user_id)
+            .filter(Task.created_at >= since_time)
+            .order_by(Task.created_at.desc())
+        )
+        return result.scalars().all()
+
+    @staticmethod
     async def delete_task(db: AsyncSession, task_id: str) -> bool:
         """Delete task by ID"""
         result = await db.execute(delete(Task).where(Task.task_id == task_id))

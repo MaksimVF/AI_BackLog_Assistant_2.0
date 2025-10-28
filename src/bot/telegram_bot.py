@@ -11,6 +11,7 @@ from src.config import Config
 from src.orchestrator.main_orchestrator import main_orchestrator
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TaskFileRepository, TriggerRepository
+from src.agents.level1.duplicate_detector import duplicate_detector
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -267,12 +268,23 @@ class TelegramBot:
                 await message.answer(f"❌ Error processing your message: {result.get('error')}")
                 return
 
-            response = (
-                f"Task #{result['task_id']} processed! ✅\n\n"
-                f"Description: {message.text}\n"
-                f"Status: {result['status']}\n"
-                f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
-            )
+            # Check if this is a duplicate message
+            if result['result'].get('is_duplicate'):
+                duplicate_info = result['result'].get('duplicate_analysis', '')
+                response = (
+                    f"Task #{result['task_id']} processed! ⚠️\n\n"
+                    f"⚠️ Duplicate Message Detected: {duplicate_info}\n\n"
+                    f"Description: {message.text}\n"
+                    f"Status: {result['status']}\n"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
+                )
+            else:
+                response = (
+                    f"Task #{result['task_id']} processed! ✅\n\n"
+                    f"Description: {message.text}\n"
+                    f"Status: {result['status']}\n"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
+                )
             await message.answer(response)
             logger.info(f"Successfully processed task {result['task_id']}")
 
@@ -294,19 +306,29 @@ class TelegramBot:
         try:
             logger.info(f"Processing Telegram message from user {user_id}: {message_text[:50]}...")
 
+            # Check for duplicate messages
+            duplicate_check = await duplicate_detector.check_duplicate(message_text, user_id)
+            logger.info(f"Duplicate check result: {duplicate_check}")
+
             # Create metadata for the task
             metadata = {
                 "source": "telegram",
                 "user_id": user_id,
                 "username": "telegram_user",
-                "chat_id": "telegram_chat"
+                "chat_id": "telegram_chat",
+                "is_duplicate": duplicate_check["is_duplicate"],
+                "duplicate_count": duplicate_check["duplicate_count"],
+                "duplicate_analysis": duplicate_check["analysis"]
             }
 
             # Process through the workflow
             result = main_orchestrator.process_workflow(message_text, metadata)
 
-            # Generate a simple task ID
-            task_id = f"task_{hash(message_text) % 1000000}"
+            # Generate a unique task ID based on timestamp and message content
+            import time
+            import hashlib
+            unique_hash = hashlib.md5(f"{message_text}-{time.time()}-{user_id}".encode()).hexdigest()[:6]
+            task_id = f"task_{unique_hash}"
             logger.info(f"Generated task ID: {task_id}")
 
             # Store in database
@@ -328,6 +350,10 @@ class TelegramBot:
 
                 await TaskRepository.create_task(db, task_data)
                 logger.info(f"Successfully stored task {task_id} in database")
+
+            # Add duplicate information to result
+            result["is_duplicate"] = duplicate_check["is_duplicate"]
+            result["duplicate_analysis"] = duplicate_check["analysis"]
 
             return {
                 "task_id": task_id,
