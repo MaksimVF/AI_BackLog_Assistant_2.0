@@ -337,7 +337,7 @@ class TelegramBot:
                 task_data = {
                     "task_id": task_id,
                     "input_data": message_text,
-                    "metadata": metadata,
+                    "task_metadata": metadata,
                     "status": "completed",
                     "classification": result.get("classification", "unknown"),
                     "risk_score": result.get("risk_score"),
