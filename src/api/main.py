@@ -114,7 +114,36 @@ async def create_task(request: TaskRequest):
         # Generate a simple task ID
         task_id = f"task_{hash(request.input_data) % 1000000}"
 
-        logger.info(f"Task {task_id} created successfully")
+        # Extract classification and prioritization results
+        classification = result["level2"]["advanced_classification"]
+        prioritization = result["level3"]["prioritization"]
+
+        # Prepare task data for database
+        task_data = {
+            "task_id": task_id,
+            "input_data": request.input_data,
+            "task_metadata": request.metadata or {},
+            "status": "completed",
+            "classification": classification["task_type"],
+            "sub_category": classification["sub_category"],
+            "domain": classification["metadata"]["domain"],
+            "sentiment": classification["metadata"]["sentiment"],
+            "confidence": classification["confidence"],
+            "risk_score": prioritization["risk_score"],
+            "impact_score": prioritization["impact_score"],
+            "confidence_score": prioritization["confidence_score"],
+            "urgency_score": prioritization["urgency_score"],
+            "priority_score": prioritization["priority_score"],
+            "priority_level": prioritization["priority_level"],
+            "priority_recommendation": prioritization["recommendation"],
+            "recommendation": result["level4"].get("recommendation", "No recommendation available")
+        }
+
+        # Save to database
+        async with AsyncSessionLocal() as db:
+            await TaskRepository.create_task(db, task_data)
+
+        logger.info(f"Task {task_id} created and saved successfully")
 
         return {
             "task_id": task_id,
@@ -163,7 +192,7 @@ async def process_telegram_message(request: TelegramMessageRequest):
     try:
         logger.info(f"Processing Telegram message: {request.message_text[:50]}...")
 
-        result = telegram_bot.process_telegram_message(
+        result = await telegram_bot.process_telegram_message(
             request.message_text,
             request.user_id
         )
@@ -183,7 +212,7 @@ async def get_telegram_task_status(task_id: str):
     try:
         logger.info(f"Getting status for Telegram task: {task_id}")
 
-        result = telegram_bot.get_task_status(task_id)
+        result = await telegram_bot.get_task_status(task_id)
 
         logger.info(f"Telegram task status retrieved successfully")
         return result
@@ -200,7 +229,7 @@ async def list_telegram_tasks():
     try:
         logger.info("Listing recent Telegram tasks")
 
-        result = telegram_bot.list_tasks()
+        result = await telegram_bot.list_tasks()
 
         logger.info(f"Telegram tasks listed successfully")
         return result
@@ -217,7 +246,7 @@ async def get_telegram_task_archive(task_id: str):
     try:
         logger.info(f"Getting archive for Telegram task: {task_id}")
 
-        result = telegram_bot.get_task_archive(task_id)
+        result = await telegram_bot.get_task_archive(task_id)
 
         logger.info(f"Telegram task archive retrieved successfully")
         return result
