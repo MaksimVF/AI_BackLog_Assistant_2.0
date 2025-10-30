@@ -62,7 +62,7 @@ class TaskRepository:
         """Get recent tasks by user since a specific time"""
         result = await db.execute(
             select(Task)
-            .filter(Task.metadata["user_id"].as_string() == user_id)
+            .filter(Task.task_metadata["user_id"].as_string() == user_id)
             .filter(Task.created_at >= since_time)
             .order_by(Task.created_at.desc())
         )
