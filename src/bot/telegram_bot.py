@@ -271,12 +271,17 @@ class TelegramBot:
             # Check if this is a duplicate message
             if result['result'].get('is_duplicate'):
                 duplicate_info = result['result'].get('duplicate_analysis', '')
+                original_task_id = result['result'].get('original_task_id', 'unknown')
+
                 response = (
                     f"Task #{result['task_id']} processed! ⚠️\n\n"
                     f"⚠️ Duplicate Message Detected: {duplicate_info}\n\n"
+                    f"Original Task ID: {original_task_id}\n"
                     f"Description: {message.text}\n"
                     f"Status: {result['status']}\n"
-                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}\n\n"
+                    f"📝 Note: This task has been marked as a duplicate. Duplicate attempts are recorded "
+                    f"and may influence task prioritization."
                 )
             else:
                 response = (

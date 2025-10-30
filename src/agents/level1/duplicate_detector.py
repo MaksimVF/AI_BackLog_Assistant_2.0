@@ -41,7 +41,9 @@ class DuplicateDetector:
             "duplicate_count": 0,
             "last_occurrence": None,
             "time_since_last": None,
-            "analysis": "No duplicates found"
+            "analysis": "No duplicates found",
+            "duplicate_attempts": [],
+            "original_task_id": None
         }
 
         try:
@@ -75,6 +77,7 @@ class DuplicateDetector:
                     most_recent = max(duplicates, key=lambda x: x.created_at)
                     result["last_occurrence"] = most_recent.created_at
                     result["time_since_last"] = (datetime.utcnow() - most_recent.created_at).total_seconds() / 60  # in minutes
+                    result["original_task_id"] = most_recent.task_id
 
                     # Generate analysis
                     if result["duplicate_count"] == 1:
@@ -85,6 +88,32 @@ class DuplicateDetector:
                     # Add pattern analysis
                     if result["time_since_last"] and result["time_since_last"] < 10:
                         result["analysis"] += ". User is repeating the message frequently."
+
+                    # Record duplicate attempt metadata
+                    duplicate_attempt = {
+                        "attempt_time": datetime.utcnow().isoformat(),
+                        "original_task_id": most_recent.task_id,
+                        "time_since_original": result["time_since_last"]
+                    }
+                    result["duplicate_attempts"].append(duplicate_attempt)
+
+                    # Update the original task with duplicate attempt information
+                    if most_recent.task_metadata is None:
+                        most_recent.task_metadata = {}
+
+                    # Initialize duplicate_attempts if not present
+                    if "duplicate_attempts" not in most_recent.task_metadata:
+                        most_recent.task_metadata["duplicate_attempts"] = []
+
+                    # Add the new attempt
+                    most_recent.task_metadata["duplicate_attempts"].append(duplicate_attempt)
+
+                    # Update the task in the database
+                    await TaskRepository.update_task(
+                        db,
+                        most_recent.task_id,
+                        {"task_metadata": most_recent.task_metadata}
+                    )
 
         except Exception as e:
             logger.error(f"Error checking for duplicates: {e}")
