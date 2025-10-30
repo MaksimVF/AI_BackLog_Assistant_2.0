@@ -55,8 +55,10 @@ class ConnectionChecker:
             # Add timeout to prevent hanging
             async with AsyncSessionLocal() as db:
                 # Try a simple query to test connection
-                result = await asyncio.wait_for(db.execute("SELECT 1"), timeout=5.0)
-                await result.scalar()
+                from sqlalchemy import text
+                result = await asyncio.wait_for(db.execute(text("SELECT 1")), timeout=5.0)
+                # Get the scalar result
+                scalar_result = result.scalar_one_or_none()
                 logger.info("✅ Database connection successful")
                 return {"connected": True, "error": None, "details": "Connection established, query successful"}
         except asyncio.TimeoutError:
@@ -69,9 +71,8 @@ class ConnectionChecker:
     async def _check_llm_connection(self) -> Dict[str, Any]:
         """Check LLM model connection"""
         try:
-            # For now, we'll just check if the config is set
-            # In a real implementation, we'd try to load the model
-            if hasattr(Config, 'LLM_MODEL') and Config.LLM_MODEL:
+            # Check if Mistral API configuration is set
+            if hasattr(Config, 'MISTRAL_API_KEY') and Config.MISTRAL_API_KEY and Config.MISTRAL_API_KEY != 'your_mistral_key':
                 logger.info("✅ LLM model configuration found")
                 return {"connected": True, "error": None}
             else:
@@ -84,16 +85,22 @@ class ConnectionChecker:
     async def _check_s3_connection(self) -> Dict[str, Any]:
         """Check S3 bucket connection"""
         try:
+            # Check if we have example credentials
+            if (Config.S3_ACCESS_KEY and "your_" in Config.S3_ACCESS_KEY) or \
+               (Config.S3_SECRET_KEY and "your_" in Config.S3_SECRET_KEY):
+                logger.warning("⚠️ S3 credentials are using example values")
+                return {"connected": False, "error": "Example credentials detected"}
+
             # Create S3 client
             s3 = boto3.client(
                 's3',
-                aws_access_key_id=Config.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=Config.AWS_SECRET_ACCESS_KEY,
-                region_name=Config.AWS_REGION
+                aws_access_key_id=Config.S3_ACCESS_KEY,
+                aws_secret_access_key=Config.S3_SECRET_KEY,
+                endpoint_url=Config.S3_ENDPOINT
             )
 
             # Try to list buckets to test connection
-            s3.head_bucket(Bucket=Config.AWS_S3_BUCKET)
+            s3.head_bucket(Bucket=Config.S3_BUCKET)
             logger.info("✅ S3 bucket connection successful")
             return {"connected": True, "error": None}
         except (NoCredentialsError, PartialCredentialsError) as e:
