@@ -103,6 +103,38 @@ To use the Telegram bot functionality:
      ```
      TELEGRAM_TOKEN=your_real_telegram_bot_token_here
      ```
+
+## Web App Integration
+
+The project now includes a Telegram Web App (mini-app) that provides a user interface for managing tasks. The web app is integrated with the main API.
+
+### Running the Web App
+
+1. **Run the combined API**:
+   ```bash
+   uvicorn src.api.main_with_webapp:app --reload
+   ```
+
+2. **Access the web app**:
+   - Open the `webapp/index.html` file in a browser
+   - For Telegram integration, host the HTML file on a web server and configure your bot to launch it
+
+3. **Web App Features**:
+   - Task management (add, view, update)
+   - Recommendation display
+   - Status tracking
+   - Telegram authentication integration
+   - Responsive design
+
+### Web App API Endpoints
+
+The web app uses the following API endpoints (prefixed with `/webapp`):
+
+- `GET /webapp/tasks` - Get all tasks
+- `POST /webapp/tasks` - Create a new task
+- `GET /webapp/tasks/{task_id}` - Get a specific task
+- `PUT /webapp/tasks/{task_id}` - Update a task
+- `GET /webapp/recommendations/{task_id}` - Get recommendations for a task
    - Make sure the token is not "AIBLA" (which is a mock token)
 
 4. Run the bot:

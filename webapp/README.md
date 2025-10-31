@@ -51,6 +51,16 @@ To run locally:
 2. Open the HTML file in a browser
 3. For Telegram integration, use tools like ngrok to expose your local server
 
+## Web App API Endpoints
+
+The web app uses the following API endpoints (prefixed with `/webapp`):
+
+- `GET /webapp/tasks` - Get all tasks
+- `POST /webapp/tasks` - Create a new task
+- `GET /webapp/tasks/{task_id}` - Get a specific task
+- `PUT /webapp/tasks/{task_id}` - Update a task
+- `GET /webapp/recommendations/{task_id}` - Get recommendations for a task
+
 ## Future Enhancements
 
 - Add real-time updates with WebSockets
