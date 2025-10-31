@@ -64,6 +64,7 @@ class TelegramBot:
         self.dp.message.register(self.handle_archive, Command(commands=["archive"]))
         self.dp.message.register(self.handle_update_status, Command(commands=["update"]))
         self.dp.message.register(self.handle_recommendation, Command(commands=["recommend"]))
+        self.dp.message.register(self.handle_webapp, Command(commands=["webapp"]))
         self.dp.message.register(self.handle_direct_message)
 
         logger.info("Telegram bot handlers registered successfully")
@@ -81,17 +82,20 @@ class TelegramBot:
             "/archive <task_id> - Get task archive details\n"
             "/update <task_id> <status> - Update task status\n"
             "/recommend <task_id> - Get enhanced recommendations\n"
+            "/webapp - Open the web interface\n"
             "/help - Show this help message\n\n"
             "💡 Examples:\n"
             "/add Implement user authentication\n"
             "/status task_abc123\n"
             "/update task_abc123 in_progress\n"
             "/recommend task_abc123\n"
+            "/webapp - Open the web interface\n"
             "Just type: Implement user authentication system\n\n"
             "🔍 Tips:\n"
             "• Use /list to find task IDs\n"
             "• Use /archive for detailed analysis\n"
             "• Use /recommend for advanced recommendations\n"
+            "• Use /webapp for a better user experience\n"
             "• You can send messages directly without /add\n"
             "• Contact support if you need help!\n\n"
             "📝 Need help? Contact our support team!"
@@ -111,17 +115,20 @@ class TelegramBot:
             "/archive <task_id> - Get task archive details\n"
             "/update <task_id> <status> - Update task status\n"
             "/recommend <task_id> - Get enhanced recommendations\n"
+            "/webapp - Open the web interface\n"
             "/help - Show this help message\n\n"
             "💡 Examples:\n"
             "/add Implement user authentication\n"
             "/status task_abc123\n"
             "/update task_abc123 in_progress\n"
             "/recommend task_abc123\n"
+            "/webapp - Open the web interface\n"
             "Just type: Implement user authentication system\n\n"
             "🔍 Tips:\n"
             "• Use /list to find task IDs\n"
             "• Use /archive for detailed analysis\n"
             "• Use /recommend for advanced recommendations\n"
+            "• Use /webapp for a better user experience\n"
             "• You can send messages directly without /add\n"
             "• Contact support if you need help!\n\n"
             "📝 Need help? Contact our support team!"
@@ -549,6 +556,45 @@ class TelegramBot:
 
         except Exception as e:
             logger.error(f"Error handling /recommend command: {e}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
+
+    async def handle_webapp(self, message: Message):
+        """Handle the /webapp command to launch the web interface"""
+        try:
+            logger.info(f"Received /webapp command from user {message.from_user.id}")
+
+            # Create a keyboard with the web app button
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+            # Web app URL - in production, this would be your hosted URL
+            web_app_url = "https://yourdomain.com/webapp/index.html"
+
+            # Create the web app button
+            web_app_button = InlineKeyboardButton(
+                text="🌐 Open Web Interface",
+                web_app={"url": web_app_url}
+            )
+
+            # Create the keyboard
+            keyboard = InlineKeyboardMarkup().add(web_app_button)
+
+            # Send message with web app button
+            await message.answer(
+                "🚀 Open the AI Backlog Assistant Web Interface for a better experience!\n\n"
+                "💡 The web interface provides:\n"
+                "• Task management with visual interface\n"
+                "• Enhanced recommendation views\n"
+                "• Better task organization and tracking\n\n"
+                "🔍 Tip: Use the web interface for the best experience!",
+                reply_markup=keyboard
+            )
+            logger.info(f"Sent web app link to user {message.from_user.id}")
+
+        except Exception as e:
+            logger.error(f"Error handling /webapp command: {e}")
             await message.answer(
                 f"❌ Error processing your request: {str(e)}\n\n"
                 "Please try again or contact support if this persists."

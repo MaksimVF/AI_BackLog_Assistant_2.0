@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Backlog Assistant</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background: #4285f4;
+            color: white;
+            border-radius: 10px 10px 0 0;
+            margin: -20px -20px 20px -20px;
+        }
+        .task-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #4285f4;
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-new { background: #ff9800; color: white; }
+        .status-in_progress { background: #2196f3; color: white; }
+        .status-completed { background: #4caf50; color: white; }
+        .status-on_hold { background: #9e9e9e; color: white; }
+        .status-cancelled { background: #f44336; color: white; }
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .btn:hover {
+            background: #3367d6;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0 15px 0;
+        }
+        .recommendation {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AI Backlog Assistant</h1>
+        </div>
+
+        <div id="userInfo" style="text-align: center; margin-bottom: 20px; font-size: 14px; color: #666;">
+            Loading user info...
+        </div>
+
+        <div id="taskForm">
+            <div class="input-group">
+                <textarea id="taskInput" placeholder="Enter your task description..." rows="3"></textarea>
+            </div>
+            <button class="btn" onclick="addTask()">📝 Add Task</button>
+        </div>
+
+        <div id="taskList" style="margin-top: 30px;">
+            <h3>📋 Your Tasks</h3>
+            <div id="tasks"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram Web App
+        const tg = window.Telegram.WebApp;
+
+        // Display user info
+        document.addEventListener('DOMContentLoaded', function() {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                const user = tg.initDataUnsafe.user;
+                document.getElementById('userInfo').textContent =
+                    `👤 Logged in as: ${user.first_name} ${user.last_name || ''} (@${user.username || 'no_username'})`;
+            } else {
+                document.getElementById('userInfo').textContent = '🔒 Secure Telegram Web App';
+            }
+
+            // Load tasks
+            loadTasks();
+        });
+
+        // API configuration
+        const API_BASE_URL = 'http://localhost:8000/api';
+
+        // Load tasks from API
+        async function loadTasks() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks`);
+                if (!response.ok) throw new Error('Failed to fetch tasks');
+
+                const tasks = await response.json();
+                displayTasks(tasks);
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                document.getElementById('tasks').innerHTML = '<p>Error loading tasks. Please try again later.</p>';
+            }
+        }
+
+        // Add a task
+        async function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const taskText = taskInput.value.trim();
+
+            if (!taskText) {
+                alert('Please enter a task description');
+                return;
+            }
+
+            // Generate a unique ID
+            const taskId = 'task_' + Math.random().toString(36).substr(2, 6);
+
+            // Create task object
+            const task = {
+                id: taskId,
+                description: taskText,
+                status: 'new',
+                created_at: new Date().toISOString(),
+                recommendation: 'No recommendation yet'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(task)
+                });
+
+                if (!response.ok) throw new Error('Failed to add task');
+
+                const createdTask = await response.json();
+
+                // Reload tasks to show the new one
+                loadTasks();
+
+                // Clear input
+                taskInput.value = '';
+
+                // Show success message
+                tg.showPopup({
+                    title: 'Task Added',
+                    message: `Task ${taskId} added successfully!`,
+                    buttons: [{ type: 'ok' }]
+                });
+            } catch (error) {
+                console.error('Error adding task:', error);
+                alert('Failed to add task. Please try again.');
+            }
+        }
+
+        // Display tasks
+        function displayTasks(tasks) {
+            const tasksContainer = document.getElementById('tasks');
+            tasksContainer.innerHTML = '';
+
+            if (!tasks || tasks.length === 0) {
+                tasksContainer.innerHTML = '<p>No tasks yet. Add one above!</p>';
+                return;
+            }
+
+            tasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task-card';
+                taskElement.innerHTML = `
+                    <div class="task-header">
+                        <h4>${task.id}</h4>
+                        <span class="status status-${task.status.replace(' ', '_')}">${task.status}</span>
+                    </div>
+                    <p>${task.description}</p>
+                    <div class="recommendation">
+                        <strong>💡 Recommendation:</strong> ${task.recommendation}
+                    </div>
+                    <button class="btn" onclick="updateStatus('${task.id}', 'in_progress')">⏳ Mark In Progress</button>
+                    <button class="btn" onclick="updateStatus('${task.id}', 'completed')">✅ Mark Completed</button>
+                `;
+                tasksContainer.appendChild(taskElement);
+            });
+        }
+
+        // Update task status
+        async function updateStatus(taskId, newStatus) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!response.ok) throw new Error('Failed to update task status');
+
+                const updatedTask = await response.json();
+
+                // Reload tasks to show the update
+                loadTasks();
+
+                // Show success message
+                tg.showPopup({
+                    title: 'Status Updated',
+                    message: `Task ${taskId} status updated to ${newStatus}`,
+                    buttons: [{ type: 'ok' }]
+                });
+            } catch (error) {
+                console.error('Error updating task status:', error);
+                alert('Failed to update task status. Please try again.');
+            }
+        }
+
+        // Expand the Web App to full height
+        tg.expand();
+    </script>
+</body>
+</html>
+
