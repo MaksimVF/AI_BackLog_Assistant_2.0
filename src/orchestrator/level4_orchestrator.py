@@ -48,14 +48,53 @@ class Level4Orchestrator:
         visualization_result = visualization_agent.generate_visualization(enhanced_analysis)
         logger.debug(f"Visualization result: {visualization_result}")
 
-        # Step 3: Generate final summary
-        summary_result = summary_agent.generate_summary(aggregation_result)
-        logger.debug(f"Summary result: {summary_result}")
+        # Step 3: Generate enhanced summary with project context
+        project_context = self._get_project_context()
+
+        # Generate enhanced recommendation
+        enhanced_summary = summary_agent.generate_enhanced_recommendation(aggregation_result, project_context)
+        logger.debug(f"Enhanced summary result: {enhanced_summary}")
+
+        # Generate basic summary for backward compatibility
+        basic_summary = summary_agent.generate_summary(aggregation_result)
 
         return {
             "aggregation": aggregation_result,
             "visualization": visualization_result,
-            "summary": summary_result
+            "summary": basic_summary,
+            "enhanced_summary": enhanced_summary
+        }
+
+    def _get_project_context(self) -> Dict[str, Any]:
+        """Get project context data for enhanced recommendations"""
+        # Sample project context data - in a real implementation, this would come from a database
+        return {
+            "project_timeline": {
+                "current_sprint_end": "2025-11-15",
+                "next_milestone": "2025-12-01",
+                "project_deadline": "2026-01-31"
+            },
+            "team_workload": {
+                "Backend Team": {
+                    "current_tasks": 12,
+                    "capacity": 15,
+                    "skills": ["Python", "Django", "PostgreSQL"]
+                },
+                "Frontend Team": {
+                    "current_tasks": 8,
+                    "capacity": 12,
+                    "skills": ["React", "JavaScript", "CSS"]
+                },
+                "QA Team": {
+                    "current_tasks": 6,
+                    "capacity": 10,
+                    "skills": ["Testing", "Automation", "QA"]
+                }
+            },
+            "resource_constraints": {
+                "budget_remaining": 5000,
+                "available_hours": 240
+            }
         }
 
     def _enhance_analysis_data(self, analysis_data: Dict[str, Any]) -> Dict[str, Any]:
