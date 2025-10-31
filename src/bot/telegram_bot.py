@@ -69,14 +69,24 @@ class TelegramBot:
         """Handle the /start command"""
         logger.info(f"Received /start command from user {message.from_user.id}")
         welcome_text = (
-            "Welcome to AI Backlog Assistant! 🚀\n\n"
-            "I help you manage and prioritize your development tasks. Here are the available commands:\n\n"
+            "🚀 Welcome to AI Backlog Assistant!\n\n"
+            "I help you manage and prioritize your development tasks. Here's how to get started:\n\n"
+            "📋 Available commands:\n"
             "/add <task> - Add a new task\n"
             "/status <task_id> - Check task status\n"
             "/list - List recent tasks\n"
             "/archive <task_id> - Get task archive details\n"
             "/help - Show this help message\n\n"
-            "You can also just send me a task description directly!"
+            "💡 Examples:\n"
+            "/add Implement user authentication\n"
+            "/status task_abc123\n"
+            "Just type: Implement user authentication system\n\n"
+            "🔍 Tips:\n"
+            "• Use /list to find task IDs\n"
+            "• Use /archive for detailed analysis\n"
+            "• You can send messages directly without /add\n"
+            "• Contact support if you need help!\n\n"
+            "📝 Need help? Contact our support team!"
         )
         await message.answer(welcome_text)
         logger.info("Sent welcome message to user")
@@ -85,17 +95,23 @@ class TelegramBot:
         """Handle the /help command"""
         logger.info(f"Received /help command from user {message.from_user.id}")
         help_text = (
-            "AI Backlog Assistant Help 📚\n\n"
-            "Available commands:\n"
+            "🚀 AI Backlog Assistant Help 📚\n\n"
+            "📋 Available commands:\n"
             "/add <task> - Add a new task\n"
             "/status <task_id> - Check task status\n"
             "/list - List recent tasks\n"
             "/archive <task_id> - Get task archive details\n"
             "/help - Show this help message\n\n"
-            "Examples:\n"
+            "💡 Examples:\n"
             "/add Implement user authentication\n"
-            "/status task_12345\n"
-            "Just type: Implement user authentication system"
+            "/status task_abc123\n"
+            "Just type: Implement user authentication system\n\n"
+            "🔍 Tips:\n"
+            "• Use /list to find task IDs\n"
+            "• Use /archive for detailed analysis\n"
+            "• You can send messages directly without /add\n"
+            "• Contact support if you need help!\n\n"
+            "📝 Need help? Contact our support team!"
         )
         await message.answer(help_text)
         logger.info("Sent help message to user")
@@ -108,7 +124,11 @@ class TelegramBot:
 
             if not task_text:
                 logger.warning(f"User {message.from_user.id} sent /add command without task description")
-                await message.answer("Please provide a task description after /add")
+                await message.answer(
+                    "⚠️ Please provide a task description after /add\n\n"
+                    "Example: /add Implement user authentication\n"
+                    "Tip: You can also just send a message directly without /add"
+                )
                 return
 
             logger.info(f"Received /add command from user {message.from_user.id} with task: {task_text[:50]}...")
@@ -119,21 +139,45 @@ class TelegramBot:
 
             if result.get('status') == 'failed':
                 logger.error(f"Failed to process /add command: {result.get('error')}")
-                await message.answer(f"❌ Error processing your request: {result.get('error')}")
+                error_msg = result.get('error', 'Unknown error')
+                await message.answer(
+                    f"❌ Error processing your request: {error_msg}\n\n"
+                    "Please try again or contact support if this persists."
+                )
                 return
 
-            response = (
-                f"Task #{result['task_id']} added successfully! ✅\n\n"
-                f"Description: {task_text}\n"
-                f"Status: {result['status']}\n"
-                f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
-            )
+            # Check if this is a duplicate
+            if result['result'].get('is_duplicate'):
+                duplicate_info = result['result'].get('duplicate_analysis', '')
+                original_task_id = result['result'].get('original_task_id', 'unknown')
+
+                response = (
+                    f"Task #{result['task_id']} processed! ⚠️\n\n"
+                    f"⚠️ Duplicate Message Detected: {duplicate_info}\n\n"
+                    f"Original Task ID: {original_task_id}\n"
+                    f"Description: {task_text}\n"
+                    f"Status: {result['status']}\n"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}\n\n"
+                    f"📝 Note: This task has been marked as a duplicate. Duplicate attempts are recorded "
+                    f"and may influence task prioritization."
+                )
+            else:
+                response = (
+                    f"Task #{result['task_id']} added successfully! ✅\n\n"
+                    f"Description: {task_text}\n"
+                    f"Status: {result['status']}\n"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}\n\n"
+                    f"💡 Tip: Use /status {result['task_id']} to check progress"
+                )
             await message.answer(response)
             logger.info(f"Successfully added task {result['task_id']} for user {user_id}")
 
         except Exception as e:
             logger.error(f"Error handling /add command: {e}")
-            await message.answer(f"❌ Error processing your request: {str(e)}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
 
     async def handle_status(self, message: Message):
         """Handle the /status command"""
@@ -142,7 +186,11 @@ class TelegramBot:
             parts = message.text.split()
             if len(parts) < 2:
                 logger.warning(f"User {message.from_user.id} sent /status command without task ID")
-                await message.answer("Please provide a task ID after /status")
+                await message.answer(
+                    "⚠️ Please provide a task ID after /status\n\n"
+                    "Example: /status task_abc123\n"
+                    "Tip: You can find task IDs using /list command"
+                )
                 return
 
             task_id = parts[1]
@@ -152,10 +200,17 @@ class TelegramBot:
 
             if result["status"] == "not_found":
                 logger.warning(f"Task {task_id} not found for user {message.from_user.id}")
-                response = f"Task #{task_id} not found. Please check the ID and try again."
+                response = (
+                    f"⚠️ Task #{task_id} not found\n\n"
+                    "Please check the task ID and try again.\n"
+                    "Tip: Use /list to see your recent tasks"
+                )
             elif result["status"] == "error":
                 logger.error(f"Error getting status for task {task_id}: {result['error']}")
-                response = f"❌ Error getting task status: {result['error']}"
+                response = (
+                    f"❌ Error getting task status: {result['error']}\n\n"
+                    "Please try again later or contact support if this persists."
+                )
             else:
                 logger.info(f"Found task {task_id} with status {result['status']}")
                 response = (
@@ -164,7 +219,8 @@ class TelegramBot:
                     f"Classification: {result['classification']}\n"
                     f"Risk Score: {result['risk_score']}\n"
                     f"Impact Score: {result['impact_score']}\n"
-                    f"Recommendation: {result['recommendation']}"
+                    f"Recommendation: {result['recommendation']}\n\n"
+                    f"💡 Tip: Use /archive {task_id} for detailed analysis"
                 )
 
             await message.answer(response)
@@ -172,7 +228,10 @@ class TelegramBot:
 
         except Exception as e:
             logger.error(f"Error handling /status command: {e}")
-            await message.answer(f"❌ Error processing your request: {str(e)}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
 
     async def handle_list(self, message: Message):
         """Handle the /list command"""
@@ -182,26 +241,43 @@ class TelegramBot:
 
             if "error" in result and result["error"]:
                 logger.error(f"Error listing tasks for user {message.from_user.id}: {result['error']}")
-                response = f"❌ Error listing tasks: {result['error']}"
+                response = (
+                    f"❌ Error listing tasks: {result['error']}\n\n"
+                    "Please try again later or contact support if this persists."
+                )
             elif not result["tasks"]:
                 logger.info(f"No recent tasks found for user {message.from_user.id}")
-                response = "You have no recent tasks."
+                response = (
+                    "📝 You have no recent tasks.\n\n"
+                    "💡 Tip: Use /add to create a new task\n"
+                    "Example: /add Implement user authentication"
+                )
             else:
                 logger.info(f"Found {len(result['tasks'])} tasks for user {message.from_user.id}")
-                response = "Your Recent Tasks 📝:\n\n"
+                response = "📝 Your Recent Tasks:\n\n"
                 for task in result["tasks"]:
                     response += (
-                        f"Task #{task['task_id']}: {task['description']}\n"
-                        f"Status: {task['status']}\n"
-                        f"Recommendation: {task['recommendation']}\n\n"
+                        f"🔹 Task #{task['task_id']}\n"
+                        f"   Description: {task['description']}\n"
+                        f"   Status: {task['status']}\n"
+                        f"   Recommendation: {task['recommendation']}\n\n"
                     )
+
+                response += (
+                    "💡 Tips:\n"
+                    "• Use /status <task_id> to check details\n"
+                    "• Use /archive <task_id> for full analysis\n"
+                )
 
             await message.answer(response)
             logger.info(f"Sent list of tasks to user {message.from_user.id}")
 
         except Exception as e:
             logger.error(f"Error handling /list command: {e}")
-            await message.answer(f"❌ Error processing your request: {str(e)}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
 
     async def handle_archive(self, message: Message):
         """Handle the /archive command"""
@@ -210,7 +286,11 @@ class TelegramBot:
             parts = message.text.split()
             if len(parts) < 2:
                 logger.warning(f"User {message.from_user.id} sent /archive command without task ID")
-                await message.answer("Please provide a task ID after /archive")
+                await message.answer(
+                    "⚠️ Please provide a task ID after /archive\n\n"
+                    "Example: /archive task_abc123\n"
+                    "Tip: Use /list to find task IDs"
+                )
                 return
 
             task_id = parts[1]
@@ -220,35 +300,47 @@ class TelegramBot:
 
             if result["status"] == "not_found":
                 logger.warning(f"Task {task_id} not found for user {message.from_user.id}")
-                response = f"Task #{task_id} not found. Please check the ID and try again."
+                response = (
+                    f"⚠️ Task #{task_id} not found\n\n"
+                    "Please check the task ID and try again.\n"
+                    "Tip: Use /list to see your recent tasks"
+                )
             elif result["status"] == "error":
                 logger.error(f"Error getting archive for task {task_id}: {result['error']}")
-                response = f"❌ Error getting task archive: {result['error']}"
+                response = (
+                    f"❌ Error getting task archive: {result['error']}\n\n"
+                    "Please try again later or contact support if this persists."
+                )
             else:
                 logger.info(f"Found archive for task {task_id}")
                 response = (
-                    f"Task #{task_id} Archive 🗄️\n\n"
-                    f"Original Input: {result['original_input']}\n\n"
-                    f"Classification: {result['classification']}\n\n"
-                    f"Analysis Results:\n"
-                    f"  - Risk Score: {result['analysis_results']['risk_score']}\n"
-                    f"  - Impact Score: {result['analysis_results']['impact_score']}\n"
-                    f"  - Confidence Score: {result['analysis_results']['confidence_score']}\n"
-                    f"  - Urgency Score: {result['analysis_results']['urgency_score']}\n\n"
-                    f"Recommendation: {result['recommendation']}\n\n"
+                    f"🗄️ Task #{task_id} Archive\n\n"
+                    f"📝 Original Input: {result['original_input']}\n\n"
+                    f"🏷️ Classification: {result['classification']}\n\n"
+                    f"📊 Analysis Results:\n"
+                    f"  • Risk Score: {result['analysis_results']['risk_score']}\n"
+                    f"  • Impact Score: {result['analysis_results']['impact_score']}\n"
+                    f"  • Confidence Score: {result['analysis_results']['confidence_score']}\n"
+                    f"  • Urgency Score: {result['analysis_results']['urgency_score']}\n\n"
+                    f"💡 Recommendation: {result['recommendation']}\n\n"
                 )
 
                 if result["files"]:
-                    response += "Files:\n"
+                    response += "📎 Files:\n"
                     for file_url in result["files"]:
-                        response += f"  - {file_url}\n"
+                        response += f"  • {file_url}\n"
+
+                response += "\n🔍 Need more help? Contact our support team!"
 
             await message.answer(response)
             logger.info(f"Sent archive response for task {task_id} to user {message.from_user.id}")
 
         except Exception as e:
             logger.error(f"Error handling /archive command: {e}")
-            await message.answer(f"❌ Error processing your request: {str(e)}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
 
     async def handle_direct_message(self, message: Message):
         """Handle direct messages (non-command messages)"""
@@ -265,7 +357,10 @@ class TelegramBot:
 
             if result.get('status') == 'failed':
                 logger.error(f"Failed to process message: {result.get('error')}")
-                await message.answer(f"❌ Error processing your message: {result.get('error')}")
+                await message.answer(
+                    f"❌ Error processing your message: {result.get('error')}\n\n"
+                    "Please try again or contact support if this persists."
+                )
                 return
 
             # Check if this is a duplicate message
@@ -281,21 +376,26 @@ class TelegramBot:
                     f"Status: {result['status']}\n"
                     f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}\n\n"
                     f"📝 Note: This task has been marked as a duplicate. Duplicate attempts are recorded "
-                    f"and may influence task prioritization."
+                    f"and may influence task prioritization.\n\n"
+                    f"💡 Tip: Use /status {original_task_id} to check the original task"
                 )
             else:
                 response = (
                     f"Task #{result['task_id']} processed! ✅\n\n"
                     f"Description: {message.text}\n"
                     f"Status: {result['status']}\n"
-                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}\n\n"
+                    f"💡 Tip: Use /status {result['task_id']} to check progress"
                 )
             await message.answer(response)
             logger.info(f"Successfully processed task {result['task_id']}")
 
         except Exception as e:
             logger.error(f"Error handling direct message: {e}")
-            await message.answer(f"❌ Error processing your message: {str(e)}")
+            await message.answer(
+                f"❌ Error processing your message: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
 
     async def process_telegram_message(self, message_text: str, user_id: str = "unknown") -> Dict[str, Any]:
         """
