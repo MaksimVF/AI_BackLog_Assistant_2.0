@@ -58,3 +58,27 @@ Based on the following analysis data, recommend whether to implement or delay th
 
 Return a JSON object with "recommendation" (implement/delay) and "reason".
 """
+
+RISK_MITIGATION_PROMPT = """
+Given the following task analysis with high risk score, suggest specific risk mitigation strategies:
+{analysis_data}
+
+Return a JSON object with "mitigation_strategies" (list of strategies) and "alternative_approaches" (list).
+"""
+
+RESOURCE_OPTIMIZATION_PROMPT = """
+Based on the following task analysis and team workload, recommend optimal resource allocation:
+{analysis_data}
+{team_workload}
+
+Return a JSON object with "team_assignments" (dict of team:tasks) and "reallocation_suggestions" (list).
+"""
+
+CONTEXTUAL_RECOMMENDATION_PROMPT = """
+Considering the following task analysis, project timeline, and team workload, provide a comprehensive recommendation:
+{analysis_data}
+{project_timeline}
+{team_workload}
+
+Return a JSON object with "recommendation", "rationale", "priority", and "next_steps".
+"""
