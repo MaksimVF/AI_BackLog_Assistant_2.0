@@ -271,12 +271,17 @@ class TelegramBot:
             # Check if this is a duplicate message
             if result['result'].get('is_duplicate'):
                 duplicate_info = result['result'].get('duplicate_analysis', '')
+                original_task_id = result['result'].get('original_task_id', 'unknown')
+
                 response = (
                     f"Task #{result['task_id']} processed! ⚠️\n\n"
                     f"⚠️ Duplicate Message Detected: {duplicate_info}\n\n"
+                    f"Original Task ID: {original_task_id}\n"
                     f"Description: {message.text}\n"
                     f"Status: {result['status']}\n"
-                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}"
+                    f"Recommendation: {result['result'].get('recommendation', 'No recommendation yet')}\n\n"
+                    f"📝 Note: This task has been marked as a duplicate. Duplicate attempts are recorded "
+                    f"and may influence task prioritization."
                 )
             else:
                 response = (
@@ -334,28 +339,17 @@ class TelegramBot:
 
             # Store in database
             async with AsyncSessionLocal() as db:
-                # Extract classification and prioritization results
-                classification = result["level2"]["advanced_classification"]
-                prioritization = result["level3"]["prioritization"]
-
                 task_data = {
                     "task_id": task_id,
                     "input_data": message_text,
                     "task_metadata": metadata,
                     "status": "completed",
-                    "classification": classification["task_type"],
-                    "sub_category": classification["sub_category"],
-                    "domain": classification["metadata"]["domain"],
-                    "sentiment": classification["metadata"]["sentiment"],
-                    "confidence": classification["confidence"],
-                    "risk_score": prioritization["risk_score"],
-                    "impact_score": prioritization["impact_score"],
-                    "confidence_score": prioritization["confidence_score"],
-                    "urgency_score": prioritization["urgency_score"],
-                    "priority_score": prioritization["priority_score"],
-                    "priority_level": prioritization["priority_level"],
-                    "priority_recommendation": prioritization["recommendation"],
-                    "recommendation": result["level4"].get("recommendation", "No recommendation available"),
+                    "classification": result.get("classification", "unknown"),
+                    "risk_score": result.get("risk_score"),
+                    "impact_score": result.get("impact_score"),
+                    "confidence_score": result.get("confidence_score"),
+                    "urgency_score": result.get("urgency_score"),
+                    "recommendation": result.get("recommendation"),
                     "created_at": datetime.utcnow(),
                     "updated_at": datetime.utcnow()
                 }
@@ -409,10 +403,6 @@ class TelegramBot:
                     "task_id": task.task_id,
                     "status": task.status,
                     "classification": task.classification,
-                    "sub_category": task.sub_category,
-                    "domain": task.domain,
-                    "priority_level": task.priority_level,
-                    "priority_recommendation": task.priority_recommendation,
                     "risk_score": task.risk_score,
                     "impact_score": task.impact_score,
                     "recommendation": task.recommendation
@@ -449,9 +439,6 @@ class TelegramBot:
                         "task_id": task.task_id,
                         "description": task.input_data[:50] + "...",
                         "status": task.status,
-                        "classification": task.classification,
-                        "sub_category": task.sub_category,
-                        "priority_level": task.priority_level,
                         "recommendation": task.recommendation or "No recommendation"
                     })
 
@@ -497,10 +484,6 @@ class TelegramBot:
                     "status": task.status,
                     "original_input": task.input_data,
                     "classification": task.classification,
-                    "sub_category": task.sub_category,
-                    "domain": task.domain,
-                    "priority_level": task.priority_level,
-                    "priority_recommendation": task.priority_recommendation,
                     "analysis_results": {
                         "risk_score": task.risk_score,
                         "impact_score": task.impact_score,

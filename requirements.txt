@@ -4,7 +4,7 @@
 # Core
 fastapi==0.105.0
 uvicorn==0.22.0
-python-dotenv==1.2.1
+python-dotenv==1.0.0
 sqlalchemy==2.0.15
 asyncpg==0.30.0  # Async PostgreSQL driver (compatible with Python 3.12)
 redis==4.5.5
@@ -14,8 +14,4 @@ httpx==0.23.0
 aiogram==3.22.0  # Telegram bot framework (compatible with Python 3.12)
 weaviate-client==3.25.0  # Weaviate vector database client
 boto3==1.40.50  # AWS SDK for S3 integration
-
-# Machine Learning / NLP
-scikit-learn==1.7.2  # For similarity calculations
-aiosqlite==0.21.0  # SQLite async driver for testing
 
