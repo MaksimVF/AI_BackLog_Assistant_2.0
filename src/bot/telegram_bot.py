@@ -63,6 +63,7 @@ class TelegramBot:
         self.dp.message.register(self.handle_list, Command(commands=["list"]))
         self.dp.message.register(self.handle_archive, Command(commands=["archive"]))
         self.dp.message.register(self.handle_update_status, Command(commands=["update"]))
+        self.dp.message.register(self.handle_recommendation, Command(commands=["recommend"]))
         self.dp.message.register(self.handle_direct_message)
 
         logger.info("Telegram bot handlers registered successfully")
@@ -79,15 +80,18 @@ class TelegramBot:
             "/list - List recent tasks\n"
             "/archive <task_id> - Get task archive details\n"
             "/update <task_id> <status> - Update task status\n"
+            "/recommend <task_id> - Get enhanced recommendations\n"
             "/help - Show this help message\n\n"
             "💡 Examples:\n"
             "/add Implement user authentication\n"
             "/status task_abc123\n"
             "/update task_abc123 in_progress\n"
+            "/recommend task_abc123\n"
             "Just type: Implement user authentication system\n\n"
             "🔍 Tips:\n"
             "• Use /list to find task IDs\n"
             "• Use /archive for detailed analysis\n"
+            "• Use /recommend for advanced recommendations\n"
             "• You can send messages directly without /add\n"
             "• Contact support if you need help!\n\n"
             "📝 Need help? Contact our support team!"
@@ -106,15 +110,18 @@ class TelegramBot:
             "/list - List recent tasks\n"
             "/archive <task_id> - Get task archive details\n"
             "/update <task_id> <status> - Update task status\n"
+            "/recommend <task_id> - Get enhanced recommendations\n"
             "/help - Show this help message\n\n"
             "💡 Examples:\n"
             "/add Implement user authentication\n"
             "/status task_abc123\n"
             "/update task_abc123 in_progress\n"
+            "/recommend task_abc123\n"
             "Just type: Implement user authentication system\n\n"
             "🔍 Tips:\n"
             "• Use /list to find task IDs\n"
             "• Use /archive for detailed analysis\n"
+            "• Use /recommend for advanced recommendations\n"
             "• You can send messages directly without /add\n"
             "• Contact support if you need help!\n\n"
             "📝 Need help? Contact our support team!"
@@ -405,6 +412,143 @@ class TelegramBot:
 
         except Exception as e:
             logger.error(f"Error handling /archive command: {e}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
+
+    async def handle_recommendation(self, message: Message):
+        """Handle the /recommend command to get enhanced recommendations"""
+        try:
+            # Extract task ID from the command
+            parts = message.text.split()
+            if len(parts) < 2:
+                logger.warning(f"User {message.from_user.id} sent /recommend command without task ID")
+                await message.answer(
+                    "⚠️ Please provide a task ID after /recommend\n\n"
+                    "Example: /recommend task_abc123\n"
+                    "Tip: Use /list to find task IDs"
+                )
+                return
+
+            task_id = parts[1]
+            logger.info(f"Received /recommend command from user {message.from_user.id} for task {task_id}")
+
+            # Get task details
+            task_result = await self.get_task_status(task_id)
+
+            if task_result["status"] == "not_found":
+                logger.warning(f"Task {task_id} not found for user {message.from_user.id}")
+                response = (
+                    f"⚠️ Task #{task_id} not found\n\n"
+                    "Please check the task ID and try again.\n"
+                    "Tip: Use /list to see your recent tasks"
+                )
+            elif task_result["status"] == "error":
+                logger.error(f"Error getting task for recommendation {task_id}: {task_result['error']}")
+                response = (
+                    f"❌ Error getting task: {task_result['error']}\n\n"
+                    "Please try again later or contact support if this persists."
+                )
+            else:
+                # Process through workflow to get enhanced recommendations
+                logger.info(f"Generating enhanced recommendations for task {task_id}")
+
+                # Create a sample project context
+                project_context = {
+                    "project_timeline": {
+                        "current_sprint_end": "2025-11-15",
+                        "next_milestone": "2025-12-01",
+                        "project_deadline": "2026-01-31"
+                    },
+                    "team_workload": {
+                        "Backend Team": {
+                            "current_tasks": 12,
+                            "capacity": 15,
+                            "skills": ["Python", "Django", "PostgreSQL"]
+                        },
+                        "Frontend Team": {
+                            "current_tasks": 8,
+                            "capacity": 12,
+                            "skills": ["React", "JavaScript", "CSS"]
+                        },
+                        "QA Team": {
+                            "current_tasks": 6,
+                            "capacity": 10,
+                            "skills": ["Testing", "Automation", "QA"]
+                        }
+                    }
+                }
+
+                # Create analysis data from task
+                analysis_data = {
+                    "overall_score": (task_result.get("risk_score", 0) + task_result.get("impact_score", 0)) / 2,
+                    "risk_score": task_result.get("risk_score", 0),
+                    "impact_score": task_result.get("impact_score", 0),
+                    "urgency": task_result.get("urgency_score", 0),
+                    "confidence": task_result.get("confidence_score", 0.5),
+                    "recommendation": task_result.get("recommendation", "No recommendation")
+                }
+
+                # Get enhanced recommendation
+                enhanced_recommendation = summary_agent.generate_enhanced_recommendation(analysis_data, project_context)
+
+                # Format response
+                response = (
+                    f"🔮 Enhanced Recommendation for Task #{task_id}\n\n"
+                    f"📝 Task Details:\n"
+                    f"  • Description: {task_result.get('description', 'N/A')}\n"
+                    f"  • Status: {task_result.get('status', 'N/A')}\n\n"
+                    f"📊 Analysis:\n"
+                    f"  • Risk Score: {analysis_data['risk_score']}\n"
+                    f"  • Impact Score: {analysis_data['impact_score']}\n"
+                    f"  • Urgency: {analysis_data['urgency']}\n\n"
+                    f"💡 Basic Recommendation:\n"
+                    f"  • {enhanced_recommendation['summary']['recommendation']}\n"
+                    f"  • Priority: {enhanced_recommendation['summary']['priority']}\n\n"
+                )
+
+                # Add risk mitigation if available
+                if enhanced_recommendation.get('risk_mitigation'):
+                    risk_info = enhanced_recommendation['risk_mitigation']
+                    response += "🛡️ Risk Mitigation Strategies:\n"
+                    for strategy in risk_info.get('mitigation_strategies', []):
+                        response += f"  • {strategy}\n"
+                    if risk_info.get('alternative_approaches'):
+                        response += "🔄 Alternative Approaches:\n"
+                        for approach in risk_info['alternative_approaches']:
+                            response += f"  • {approach}\n"
+
+                # Add resource optimization if available
+                if enhanced_recommendation.get('resource_optimization'):
+                    resource_info = enhanced_recommendation['resource_optimization']
+                    response += "\n👥 Resource Optimization:\n"
+                    for team, tasks in resource_info.get('team_assignments', {}).items():
+                        response += f"  • {team}: {', '.join(tasks)}\n"
+                    if resource_info.get('reallocation_suggestions'):
+                        response += "🔄 Reallocation Suggestions:\n"
+                        for suggestion in resource_info['reallocation_suggestions']:
+                            response += f"  • {suggestion}\n"
+
+                # Add contextual recommendation if available
+                if enhanced_recommendation.get('contextual_recommendation'):
+                    context_info = enhanced_recommendation['contextual_recommendation']
+                    response += "\n📅 Contextual Recommendation:\n"
+                    response += f"  • Recommendation: {context_info.get('recommendation', 'N/A')}\n"
+                    response += f"  • Rationale: {context_info.get('rationale', 'N/A')}\n"
+                    response += f"  • Priority: {context_info.get('priority', 'N/A')}\n"
+                    if context_info.get('next_steps'):
+                        response += "  • Next Steps:\n"
+                        for step in context_info['next_steps']:
+                            response += f"    - {step}\n"
+
+                response += "\n🔍 Need more help? Contact our support team!"
+
+            await message.answer(response)
+            logger.info(f"Sent enhanced recommendation for task {task_id} to user {message.from_user.id}")
+
+        except Exception as e:
+            logger.error(f"Error handling /recommend command: {e}")
             await message.answer(
                 f"❌ Error processing your request: {str(e)}\n\n"
                 "Please try again or contact support if this persists."
