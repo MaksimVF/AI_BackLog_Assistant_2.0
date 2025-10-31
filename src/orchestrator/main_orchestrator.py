@@ -51,10 +51,14 @@ class MainOrchestrator:
         level2_result = level2_orchestrator.analyze_text(level1_result["content"])
         logger.debug(f"Level 2 completed - Sentiment: {level2_result.get('sentiment', 'N/A')}")
 
+        # Get classification from level 2 reflection result
+        classification = level2_result.get("reflection", {}).get("task_type", "feedback")
+
         # Step 3: Level 3 Analysis
         logger.debug("Level 3: Task Analysis")
-        level3_result = level3_orchestrator.analyze_task(level1_result["content"])
-        logger.debug(f"Level 3 completed - Classification: {level3_result.get('classification', 'N/A')}")
+        level3_result = level3_orchestrator.analyze_task(level1_result["content"], classification)
+        logger.debug(f"Level 3 completed - Classification: {classification}")
+        logger.debug(f"Level 3 completed - Priority: {level3_result.get('prioritization', {}).get('priority_level', 'N/A')}")
 
         # Step 4: Level 4 Recommendations
         logger.debug("Level 4: Recommendations")
