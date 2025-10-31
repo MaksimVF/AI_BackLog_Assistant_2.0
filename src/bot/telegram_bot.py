@@ -12,6 +12,7 @@ from src.orchestrator.main_orchestrator import main_orchestrator
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TaskFileRepository, TriggerRepository
 from src.agents.level1.duplicate_detector import duplicate_detector
+from src.agents.level1.task_status_manager import task_status_manager
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -61,6 +62,7 @@ class TelegramBot:
         self.dp.message.register(self.handle_status, Command(commands=["status"]))
         self.dp.message.register(self.handle_list, Command(commands=["list"]))
         self.dp.message.register(self.handle_archive, Command(commands=["archive"]))
+        self.dp.message.register(self.handle_update_status, Command(commands=["update"]))
         self.dp.message.register(self.handle_direct_message)
 
         logger.info("Telegram bot handlers registered successfully")
@@ -76,10 +78,12 @@ class TelegramBot:
             "/status <task_id> - Check task status\n"
             "/list - List recent tasks\n"
             "/archive <task_id> - Get task archive details\n"
+            "/update <task_id> <status> - Update task status\n"
             "/help - Show this help message\n\n"
             "💡 Examples:\n"
             "/add Implement user authentication\n"
             "/status task_abc123\n"
+            "/update task_abc123 in_progress\n"
             "Just type: Implement user authentication system\n\n"
             "🔍 Tips:\n"
             "• Use /list to find task IDs\n"
@@ -101,10 +105,12 @@ class TelegramBot:
             "/status <task_id> - Check task status\n"
             "/list - List recent tasks\n"
             "/archive <task_id> - Get task archive details\n"
+            "/update <task_id> <status> - Update task status\n"
             "/help - Show this help message\n\n"
             "💡 Examples:\n"
             "/add Implement user authentication\n"
             "/status task_abc123\n"
+            "/update task_abc123 in_progress\n"
             "Just type: Implement user authentication system\n\n"
             "🔍 Tips:\n"
             "• Use /list to find task IDs\n"
@@ -274,6 +280,68 @@ class TelegramBot:
 
         except Exception as e:
             logger.error(f"Error handling /list command: {e}")
+            await message.answer(
+                f"❌ Error processing your request: {str(e)}\n\n"
+                "Please try again or contact support if this persists."
+            )
+
+    async def handle_update_status(self, message: Message):
+        """Handle the /update command for updating task status"""
+        try:
+            # Extract task ID and new status from the command
+            parts = message.text.split()
+            if len(parts) < 3:
+                logger.warning(f"User {message.from_user.id} sent /update command with insufficient parameters")
+                await message.answer(
+                    "⚠️ Please provide both task ID and new status\n\n"
+                    "Example: /update task_abc123 in_progress\n"
+                    "Valid statuses: new, in_progress, on_hold, completed, cancelled"
+                )
+                return
+
+            task_id = parts[1]
+            new_status = parts[2].lower()
+            user_id = str(message.from_user.id)
+
+            logger.info(f"Received /update command from user {message.from_user.id} for task {task_id} to status {new_status}")
+
+            # Validate status
+            valid_statuses = ['new', 'in_progress', 'on_hold', 'completed', 'cancelled']
+            if new_status not in valid_statuses:
+                logger.warning(f"User {message.from_user.id} provided invalid status: {new_status}")
+                await message.answer(
+                    "⚠️ Invalid status provided\n\n"
+                    f"Valid statuses: {', '.join(valid_statuses)}\n"
+                    "Example: /update task_abc123 in_progress"
+                )
+                return
+
+            # Update task status
+            result = await task_status_manager.update_task_status(task_id, new_status, user_id)
+
+            if result["status"] == "failed":
+                logger.error(f"Failed to update task status: {result['message']}")
+                response = (
+                    f"❌ Error updating task status: {result['message']}\n\n"
+                    "Please check the task ID and try again."
+                )
+            else:
+                logger.info(f"Successfully updated task {task_id} to status {new_status}")
+                response = (
+                    f"✅ Task #{task_id} status updated to: {new_status}\n\n"
+                    f"📝 Task Details:\n"
+                    f"   - Task ID: {result['task'].task_id}\n"
+                    f"   - Status: {result['task'].status}\n"
+                    f"   - Classification: {result['task'].classification}\n"
+                    f"   - Recommendation: {result['task'].recommendation or 'No recommendation'}\n\n"
+                    f"💡 Tip: Use /status {task_id} to check current status"
+                )
+
+            await message.answer(response)
+            logger.info(f"Sent status update response for task {task_id} to user {message.from_user.id}")
+
+        except Exception as e:
+            logger.error(f"Error handling /update command: {e}")
             await message.answer(
                 f"❌ Error processing your request: {str(e)}\n\n"
                 "Please try again or contact support if this persists."
