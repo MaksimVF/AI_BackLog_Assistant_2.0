@@ -12,6 +12,8 @@ This module scores confidence and urgency for task prioritization.
 import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
+from src.utils.llm_client import llm_client
+from src.utils.prompts import CONFIDENCE_URGENCY_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -79,12 +81,44 @@ class ConfidenceUrgencyAgent:
         Returns:
             Scoring result
         """
-        scores = self._calculate_scores(text)
+        # Try to use LLM for confidence and urgency scoring if available
+        try:
+            # Use LLM for scoring
+            prompt = CONFIDENCE_URGENCY_PROMPT.format(input_text=text)
+            response = llm_client.generate_json(prompt)
 
+            if response and "confidence" in response and "urgency" in response and not response.get("error"):
+                # Parse LLM response
+                confidence = response.get("confidence", 0.7)
+                urgency = response.get("urgency", 3.0)
+                rationale = response.get("rationale", "LLM-based scoring")
+
+                return {
+                    "confidence": confidence,
+                    "urgency": urgency,
+                    "rationale": rationale,
+                    "method": "llm"
+                }
+
+        except Exception as e:
+            logger.warning(f"LLM scoring failed, falling back to heuristic: {e}")
+            # Fallback to heuristic
+            scores = self._calculate_scores(text)
+
+            return {
+                "confidence": scores.confidence,
+                "urgency": scores.urgency,
+                "rationale": scores.rationale,
+                "method": "heuristic_fallback"
+            }
+
+        # Fallback to heuristic if LLM response is not usable
+        scores = self._calculate_scores(text)
         return {
             "confidence": scores.confidence,
             "urgency": scores.urgency,
-            "rationale": scores.rationale
+            "rationale": scores.rationale,
+            "method": "heuristic_fallback"
         }
 
 # Create a global instance for easy access
