@@ -27,13 +27,13 @@ class Level3Orchestrator:
         """Initialize the Level 3 Orchestrator"""
         logger.info("Initializing Level 3 Orchestrator")
 
-    def analyze_task(self, text: str, classification: str = "feedback") -> Dict[str, Any]:
+    def analyze_task(self, text: str, task_type: str = "general") -> Dict[str, Any]:
         """
         Analyze task through Level 3 pipeline
 
         Args:
             text: Input text to analyze
-            classification: Task classification (idea, bug, feedback)
+            task_type: Type of task (bug, idea, feedback, etc.)
 
         Returns:
             Analysis results with risk, resources, impact, confidence/urgency, and prioritization
@@ -54,8 +54,8 @@ class Level3Orchestrator:
         confidence_result = confidence_urgency_agent.score_task(text)
         logger.debug(f"Confidence/urgency result: {confidence_result}")
 
-        # Step 5: Task Prioritization
-        prioritization_result = task_prioritization_agent.prioritize_task(text, classification)
+        # Step 5: Task Prioritization - enhanced prioritization
+        prioritization_result = task_prioritization_agent.prioritize_task(text, task_type)
         logger.debug(f"Prioritization result: {prioritization_result}")
 
         return {
