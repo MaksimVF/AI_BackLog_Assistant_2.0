@@ -14,4 +14,6 @@ httpx==0.23.0
 aiogram==3.22.0  # Telegram bot framework (compatible with Python 3.12)
 weaviate-client==3.25.0  # Weaviate vector database client
 boto3==1.40.50  # AWS SDK for S3 integration
+aiosqlite==0.21.0  # Async SQLite driver for local development
+scikit-learn==1.7.2  # Machine learning library for duplicate detection
 

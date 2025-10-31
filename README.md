@@ -61,7 +61,11 @@ ai-backlog-assistant/
 ### Running the Application
 
 ```bash
+# Run the main API (without webapp)
 uvicorn src.api.main:app --reload
+
+# OR run the combined API with webapp support
+uvicorn src.api.main_with_webapp:app --reload
 ```
 
 ### Running Tests

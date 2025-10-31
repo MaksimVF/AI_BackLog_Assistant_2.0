@@ -27,9 +27,9 @@ This is a Telegram Web App (mini-app) that provides a user interface for the AI 
 
 ## Deployment
 
-1. **Run the API**:
+1. **Run the combined API**:
    ```bash
-   python api.py
+   uvicorn src.api.main_with_webapp:app --reload
    ```
 
 2. **Host the Web App**:
@@ -42,12 +42,12 @@ This is a Telegram Web App (mini-app) that provides a user interface for the AI 
 
 ## Integration with Main System
 
-The web app connects to the main AI Backlog Assistant system through the API, which in turn uses the same recommendation engine and task management system.
+The web app is now integrated directly into the main AI Backlog Assistant API with the `/webapp` prefix. All routes are served from the same FastAPI instance.
 
 ## Development
 
 To run locally:
-1. Start the API: `python api.py`
+1. Start the combined API: `uvicorn src.api.main_with_webapp:app --reload`
 2. Open the HTML file in a browser
 3. For Telegram integration, use tools like ngrok to expose your local server
 
