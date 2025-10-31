@@ -11,6 +11,8 @@ This module measures the potential impact of a task.
 import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
+from src.utils.llm_client import llm_client
+from src.utils.prompts import IMPACT_POTENTIAL_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -70,6 +72,80 @@ class ImpactPotentialAgent:
         Returns:
             Impact assessment result
         """
+        # Try to use LLM for impact assessment if available
+        try:
+            # Use LLM for impact assessment
+            prompt = IMPACT_POTENTIAL_PROMPT.format(input_text=text)
+            response = llm_client.generate_text(prompt)
+
+            # Try to extract a number from the response
+            import re
+            numbers = re.findall(r'\d+\.\d+|\d+', response)
+            if numbers and not "error" in response.lower():
+                score = float(numbers[0])
+                # Ensure score is within 0-10 range
+                score = min(10.0, max(0.0, score))
+
+                # Add interpretation
+                interpretation = "Low"
+                if score > 7:
+                    interpretation = "High"
+                elif score > 4:
+                    interpretation = "Medium"
+
+                return {
+                    "impact_score": score,
+                    "interpretation": interpretation,
+                    "method": "llm",
+                    "llm_response": response,
+                    "confidence": 0.9
+                }
+
+            # Try to parse the response as a float directly
+            try:
+                score = float(response.strip())
+                # Ensure score is within 0-10 range
+                score = min(10.0, max(0.0, score))
+
+                # Add interpretation
+                interpretation = "Low"
+                if score > 7:
+                    interpretation = "High"
+                elif score > 4:
+                    interpretation = "Medium"
+
+                return {
+                    "impact_score": score,
+                    "interpretation": interpretation,
+                    "method": "llm",
+                    "llm_response": response,
+                    "confidence": 0.9
+                }
+            except ValueError:
+                # If we can't parse as float, continue to fallback
+                pass
+
+        except Exception as e:
+            logger.warning(f"LLM impact assessment failed, falling back to heuristic: {e}")
+            # Fallback to heuristic
+            score = self._calculate_impact(text)
+
+            # Add interpretation
+            interpretation = "Low"
+            if score.score > 7:
+                interpretation = "High"
+            elif score.score > 4:
+                interpretation = "Medium"
+
+            return {
+                "impact_score": score.score,
+                "interpretation": interpretation,
+                "factors": score.factors,
+                "confidence": score.confidence,
+                "method": "heuristic_fallback"
+            }
+
+        # Fallback to heuristic if LLM response is not usable
         score = self._calculate_impact(text)
 
         # Add interpretation
@@ -83,7 +159,8 @@ class ImpactPotentialAgent:
             "impact_score": score.score,
             "interpretation": interpretation,
             "factors": score.factors,
-            "confidence": score.confidence
+            "confidence": score.confidence,
+            "method": "heuristic_fallback"
         }
 
 # Create a global instance for easy access

@@ -9,6 +9,8 @@ This module evaluates the risk associated with a task using various scoring meth
 import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
+from src.utils.llm_client import llm_client
+from src.utils.prompts import RISK_ASSESSMENT_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -47,18 +49,51 @@ class RiskAssessmentAgent:
         # Cap at 10
         return min(10.0, max(0.0, risk))
 
-    def assess_risk(self, text: str, method: str = "heuristic") -> RiskScore:
+    def assess_risk(self, text: str, method: str = "llm") -> RiskScore:
         """
         Assess the risk of a task
 
         Args:
             text: Input text to assess
-            method: Scoring method (heuristic, RICE, Kano)
+            method: Scoring method (llm, heuristic, RICE, Kano)
 
         Returns:
             Risk assessment result
         """
-        if method == "heuristic":
+        if method == "llm":
+            try:
+                # Use LLM for risk assessment
+                prompt = RISK_ASSESSMENT_PROMPT.format(input_text=text)
+                response = llm_client.generate_text(prompt)
+
+                # Try to extract a number from the response
+                import re
+                numbers = re.findall(r'\d+(\.\d+)?', response)
+                if numbers:
+                    score = float(numbers[0])
+                    # Ensure score is within 0-10 range
+                    score = min(10.0, max(0.0, score))
+                else:
+                    # Fallback to heuristic if LLM response doesn't contain a number
+                    score = self._heuristic_risk_score(text)
+
+                return RiskScore(
+                    score=score,
+                    method="llm",
+                    details={"text_length": len(text), "llm_response": response}
+                )
+
+            except Exception as e:
+                logger.warning(f"LLM risk assessment failed, falling back to heuristic: {e}")
+                # Fallback to heuristic
+                score = self._heuristic_risk_score(text)
+                return RiskScore(
+                    score=score,
+                    method="heuristic_fallback",
+                    details={"text_length": len(text), "error": str(e)}
+                )
+
+        elif method == "heuristic":
             score = self._heuristic_risk_score(text)
             return RiskScore(
                 score=score,
@@ -67,8 +102,8 @@ class RiskAssessmentAgent:
             )
         else:
             # Placeholder for other methods
-            logger.warning(f"Method {method} not implemented, falling back to heuristic")
-            return self.assess_risk(text, "heuristic")
+            logger.warning(f"Method {method} not implemented, falling back to llm")
+            return self.assess_risk(text, "llm")
 
     def evaluate_risk(self, text: str) -> Dict[str, Any]:
         """

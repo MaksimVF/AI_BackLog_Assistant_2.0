@@ -13,6 +13,8 @@ This module generates final recommendations and summaries based on aggregated an
 import logging
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
+from src.utils.llm_client import llm_client
+from src.utils.prompts import SUMMARY_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -113,6 +115,51 @@ class SummaryAgent:
         Returns:
             Summary result
         """
+        # Try to use LLM for summary generation if available
+        try:
+            # Prepare analysis data for LLM
+            analysis_str = str(analysis)
+
+            # Use LLM for summary generation
+            prompt = SUMMARY_PROMPT.format(analyzed_data=analysis_str)
+            response = llm_client.generate_json(prompt)
+
+            if response and "recommendation" in response and not response.get("error"):
+                # Parse LLM response
+                return {
+                    "recommendation": response.get("recommendation", "Needs review"),
+                    "rationale": response.get("reason", "LLM-based analysis"),
+                    "priority": analysis.get("priority", "Medium"),
+                    "next_steps": response.get("next_steps", []),
+                    "analysis": analysis,
+                    "method": "llm"
+                }
+
+        except Exception as e:
+            logger.warning(f"LLM summary generation failed, falling back to heuristic: {e}")
+            # Fallback to heuristic
+            # Generate recommendation
+            recommendation = self._generate_recommendation(analysis)
+
+            # Generate rationale
+            rationale = self._generate_rationale(analysis)
+
+            # Generate priority
+            priority = self._generate_priority(analysis)
+
+            # Generate next steps
+            next_steps = self._generate_next_steps(analysis)
+
+            return {
+                "recommendation": recommendation,
+                "rationale": rationale,
+                "priority": priority,
+                "next_steps": next_steps,
+                "analysis": analysis,
+                "method": "heuristic_fallback"
+            }
+
+        # Fallback to heuristic if LLM response is not usable
         # Generate recommendation
         recommendation = self._generate_recommendation(analysis)
 
@@ -130,7 +177,8 @@ class SummaryAgent:
             "rationale": rationale,
             "priority": priority,
             "next_steps": next_steps,
-            "analysis": analysis
+            "analysis": analysis,
+            "method": "heuristic_fallback"
         }
 
 # Create a global instance for easy access

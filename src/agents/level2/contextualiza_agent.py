@@ -10,6 +10,8 @@ import logging
 import re
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
+from src.utils.llm_client import llm_client
+from src.utils.prompts import CONTEXTUALIZA_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -168,20 +170,49 @@ class ContextualizaAgent:
         Returns:
             Context analysis results
         """
-        # Extract entities
-        entities = self._simple_entity_extraction(text)
+        # Try to use LLM for context analysis if available
+        try:
+            # Use the LLM client for context analysis
+            prompt = CONTEXTUALIZA_PROMPT.format(input_text=text)
+            response = llm_client.generate_json(prompt)
 
-        # Determine domain
-        domain = self._determine_domain(text, entities)
+            if response and "entities" in response and "domain" in response:
+                # Parse LLM response
+                entities = []
+                for entity_data in response["entities"]:
+                    entities.append(Entity(
+                        entity_type=entity_data.get("type", "unknown"),
+                        text=entity_data.get("text", ""),
+                        start_index=entity_data.get("start_index", 0),
+                        end_index=entity_data.get("end_index", 0),
+                        confidence=entity_data.get("confidence", 0.7)
+                    ))
 
-        return ContextAnalysis(
-            domain=domain,
-            entities=entities,
-            metadata={
-                "text_length": len(text),
-                "entity_count": len(entities)
-            }
-        )
+                return ContextAnalysis(
+                    domain=response["domain"],
+                    entities=entities,
+                    metadata={
+                        "text_length": len(text),
+                        "entity_count": len(entities),
+                        "analysis_method": "llm"
+                    }
+                )
+
+        except Exception as e:
+            logger.warning(f"LLM context analysis failed, falling back to heuristic: {e}")
+            # Fallback to simple heuristic
+            entities = self._simple_entity_extraction(text)
+            domain = self._determine_domain(text, entities)
+
+            return ContextAnalysis(
+                domain=domain,
+                entities=entities,
+                metadata={
+                    "text_length": len(text),
+                    "entity_count": len(entities),
+                    "analysis_method": "keyword_based"
+                }
+            )
 
     def extract_entities(self, text: str) -> Dict[str, Any]:
         """

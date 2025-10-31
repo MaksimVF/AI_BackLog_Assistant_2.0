@@ -10,6 +10,8 @@ This module assesses the resource requirements for a task.
 import logging
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
+from src.utils.llm_client import llm_client
+from src.utils.prompts import RESOURCE_AVAILABILITY_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -72,14 +74,52 @@ class ResourceAvailabilityAgent:
         Returns:
             Resource assessment result
         """
-        estimate = self._estimate_resources(text)
+        # Try to use LLM for resource estimation if available
+        try:
+            # Use LLM for resource estimation
+            prompt = RESOURCE_AVAILABILITY_PROMPT.format(input_text=text)
+            response = llm_client.generate_json(prompt)
 
+            if response and "time_hours" in response and not response.get("error"):
+                # Parse LLM response
+                time_hours = response.get("time_hours", 5.0)
+                team_size = response.get("team_size", 1)
+                skills = response.get("skills", ["general"])
+                cost_estimate = response.get("cost_estimate")
+                confidence = response.get("confidence", 0.9)
+
+                return {
+                    "time_hours": time_hours,
+                    "team_size": team_size,
+                    "skills": skills,
+                    "cost_estimate": cost_estimate,
+                    "confidence": confidence,
+                    "method": "llm"
+                }
+
+        except Exception as e:
+            logger.warning(f"LLM resource estimation failed, falling back to heuristic: {e}")
+            # Fallback to heuristic
+            estimate = self._estimate_resources(text)
+
+            return {
+                "time_hours": estimate.time_hours,
+                "team_size": estimate.team_size,
+                "skills": estimate.skills,
+                "cost_estimate": estimate.cost_estimate,
+                "confidence": estimate.confidence,
+                "method": "heuristic_fallback"
+            }
+
+        # Fallback to heuristic if LLM response is not usable
+        estimate = self._estimate_resources(text)
         return {
             "time_hours": estimate.time_hours,
             "team_size": estimate.team_size,
             "skills": estimate.skills,
             "cost_estimate": estimate.cost_estimate,
-            "confidence": estimate.confidence
+            "confidence": estimate.confidence,
+            "method": "heuristic_fallback"
         }
 
 # Create a global instance for easy access
