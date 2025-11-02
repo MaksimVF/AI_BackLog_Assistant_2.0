@@ -11,7 +11,7 @@ This module generates visualizations using plotly for charts and graphs.
 
 import logging
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -30,7 +30,7 @@ except ImportError:
 class VisualizationResult(BaseModel):
     """Data model for visualization results"""
     chart_type: str
-    chart_data: Dict[str, Any] | List[Dict[str, Any]]
+    chart_data: Union[Dict[str, Any], List[Dict[str, Any]]]
     chart_html: Optional[str] = None
 
 class VisualizationAgent:
