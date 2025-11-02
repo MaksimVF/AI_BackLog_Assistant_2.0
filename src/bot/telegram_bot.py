@@ -579,7 +579,7 @@ class TelegramBot:
             )
 
             # Create the keyboard
-            keyboard = InlineKeyboardMarkup().add(web_app_button)
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[web_app_button]])
 
             # Send message with web app button
             await message.answer(
