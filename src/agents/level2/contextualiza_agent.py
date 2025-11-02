@@ -224,13 +224,26 @@ class ContextualizaAgent:
         Returns:
             Context analysis result as dictionary
         """
-        analysis = self.analyze_context(text)
+        try:
+            analysis = self.analyze_context(text)
 
-        return {
-            "domain": analysis.domain,
-            "entities": [entity.model_dump() for entity in analysis.entities],
-            "metadata": analysis.metadata
-        }
+            return {
+                "domain": analysis.domain,
+                "entities": [entity.model_dump() for entity in analysis.entities],
+                "metadata": analysis.metadata
+            }
+        except AttributeError as e:
+            logger.error(f"Failed to extract entities due to missing attributes: {e}")
+            # Return a safe fallback
+            return {
+                "domain": "unknown",
+                "entities": [],
+                "metadata": {
+                    "text_length": len(text),
+                    "entity_count": 0,
+                    "analysis_method": "fallback"
+                }
+            }
 
 
 # Create a global instance for easy access

@@ -63,11 +63,23 @@ class LLMClient:
                 json=payload,
                 timeout=30
             )
+
+            # Handle 404 error specifically
+            if response.status_code == 404:
+                logger.error(f"LLM API endpoint not found: {self.api_url}/generate")
+                logger.error("Please check if the Mistral API URL is correct")
+                return {"response": "", "error": "API endpoint not found"}
+
             response.raise_for_status()
 
-            result = response.json()
-            logger.debug(f"LLM API response: {result}")
-            return result
+            try:
+                result = response.json()
+                logger.debug(f"LLM API response: {result}")
+                return result
+            except ValueError as e:
+                logger.warning(f"LLM response is not valid JSON: {e}")
+                logger.warning(f"Raw response: {response.text}")
+                return {"response": "", "error": f"Invalid JSON response: {e}"}
 
         except requests.exceptions.RequestException as e:
             logger.error(f"LLM API request failed: {e}")
