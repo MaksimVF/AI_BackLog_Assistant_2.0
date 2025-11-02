@@ -51,7 +51,7 @@ class LLMClient:
         }
 
         payload = {
-            "model": "mistral-large",  # Default model, can be parameterized if needed
+            "model": "mistral-small",  # Default model, can be parameterized if needed
             "messages": [
                 {"role": "user", "content": prompt}
             ],
