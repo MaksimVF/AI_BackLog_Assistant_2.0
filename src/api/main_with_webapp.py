@@ -2,11 +2,11 @@
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
-from src.orchestrator.main_orchestrator import main_orchestrator
+from src.orchestrator.main_orchestrator import MainOrchestrator
 from src.bot.telegram_bot import telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
-from src.utils.connection_checker import connection_checker
+from src.utils.connection_checker import ConnectionChecker
 import logging
 import asyncio
 from datetime import datetime, UTC
@@ -24,13 +24,15 @@ async def lifespan(app: FastAPI):
 
     # Check external service connections
     try:
-        await connection_checker()
+        checker = ConnectionChecker()
+        await checker.check_all_connections()
         logger.info("External services are available")
     except Exception as e:
         logger.error(f"External service check failed: {e}")
 
     # Start background tasks
-    asyncio.create_task(main_orchestrator())
+    orchestrator = MainOrchestrator()
+    asyncio.create_task(orchestrator.process_workflow("Initial workflow", {}))
     asyncio.create_task(telegram_bot())
 
     try:

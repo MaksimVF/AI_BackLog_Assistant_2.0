@@ -19,8 +19,28 @@ class WeaviateClient:
 
     def __init__(self):
         """Initialize the Weaviate client"""
-        self.client = weaviate.Client(
-            url=config.WEAVIATE_URL,
+        from weaviate.connect.base import ConnectionParams, ProtocolParams
+
+        # Parse URL to extract host and port
+        from urllib.parse import urlparse
+        parsed_url = urlparse(config.WEAVIATE_URL)
+
+        # Create connection parameters
+        connection_params = ConnectionParams(
+            http=ProtocolParams(
+                host=parsed_url.hostname,
+                port=parsed_url.port or (443 if parsed_url.scheme == 'https' else 80),
+                secure=parsed_url.scheme == 'https'
+            ),
+            grpc=ProtocolParams(
+                host=parsed_url.hostname,
+                port=50051,  # Default gRPC port for Weaviate
+                secure=False
+            )
+        )
+
+        self.client = weaviate.WeaviateClient(
+            connection_params=connection_params,
             additional_headers={
                 "X-OpenAI-Api-Key": config.MISTRAL_API_KEY  # Using Mistral API key for Weaviate
             }
@@ -28,38 +48,34 @@ class WeaviateClient:
 
     def create_schema(self):
         """Create Weaviate schema for task embeddings"""
-        schema = {
-            "classes": [
+        schema_config = {
+            "class": "Task",
+            "description": "AI Backlog Task",
+            "properties": [
                 {
-                    "class": "Task",
-                    "description": "AI Backlog Task",
-                    "properties": [
-                        {
-                            "name": "task_id",
-                            "dataType": ["string"],
-                            "description": "Unique task ID"
-                        },
-                        {
-                            "name": "input_data",
-                            "dataType": ["text"],
-                            "description": "Task input data"
-                        },
-                        {
-                            "name": "classification",
-                            "dataType": ["string"],
-                            "description": "Task classification (idea/bug/feedback)"
-                        },
-                        {
-                            "name": "recommendation",
-                            "dataType": ["text"],
-                            "description": "AI recommendation"
-                        }
-                    ]
+                    "name": "task_id",
+                    "dataType": ["string"],
+                    "description": "Unique task ID"
+                },
+                {
+                    "name": "input_data",
+                    "dataType": ["text"],
+                    "description": "Task input data"
+                },
+                {
+                    "name": "classification",
+                    "dataType": ["string"],
+                    "description": "Task classification (idea/bug/feedback)"
+                },
+                {
+                    "name": "recommendation",
+                    "dataType": ["text"],
+                    "description": "AI recommendation"
                 }
             ]
         }
 
-        self.client.schema.create(schema)
+        self.client.schema.create_class(schema_config)
         return True
 
     def add_task_embedding(self, task_id: str, input_data: str, classification: str, recommendation: str, vector: list):
@@ -71,34 +87,59 @@ class WeaviateClient:
             "recommendation": recommendation
         }
 
-        self.client.data_object.create(
-            data_object=data_object,
+        self.client.data.insert(
             class_name="Task",
+            properties=data_object,
             vector=vector
         )
         return True
 
     def search_similar_tasks(self, query_vector: list, limit: int = 5):
         """Search for similar tasks using vector search"""
-        result = self.client.query.get(
-            "Task",
-            ["task_id", "input_data", "classification", "recommendation"]
-        ).with_near_vector({
-            "vector": query_vector
-        }).with_limit(limit).do()
+        result = self.client.graphql_query(
+            """
+            {
+              Get {
+                Task(
+                  nearVector: {
+                    vector: %s
+                  },
+                  limit: %s
+                ) {
+                  task_id
+                  input_data
+                  classification
+                  recommendation
+                }
+              }
+            }
+            """ % (query_vector, limit)
+        )
 
         return result["data"]["Get"]["Task"]
 
     def get_task_by_id(self, task_id: str):
         """Get a task by ID from Weaviate"""
-        result = self.client.query.get(
-            "Task",
-            ["task_id", "input_data", "classification", "recommendation"]
-        ).with_where({
-            "path": ["task_id"],
-            "operator": "Equal",
-            "valueString": task_id
-        }).do()
+        result = self.client.graphql_query(
+            """
+            {
+              Get {
+                Task(
+                  where: {
+                    path: ["task_id"]
+                    operator: Equal
+                    valueString: "%s"
+                  }
+                ) {
+                  task_id
+                  input_data
+                  classification
+                  recommendation
+                }
+              }
+            }
+            """ % task_id
+        )
 
         if result["data"]["Get"]["Task"]:
             return result["data"]["Get"]["Task"][0]
