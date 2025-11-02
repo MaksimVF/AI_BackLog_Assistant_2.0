@@ -30,7 +30,7 @@ except ImportError:
 class VisualizationResult(BaseModel):
     """Data model for visualization results"""
     chart_type: str
-    chart_data: Dict[str, Any]
+    chart_data: Dict[str, Any] | List[Dict[str, Any]]
     chart_html: Optional[str] = None
 
 class VisualizationAgent:
