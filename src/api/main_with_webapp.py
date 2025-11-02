@@ -9,39 +9,42 @@ from src.db.repository import TaskRepository, TriggerRepository
 from src.utils.connection_checker import connection_checker
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, UTC
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="AI Backlog Assistant API",
-    description="API for managing backlog tasks with AI assistance",
-    version="0.1.0"
-)
-
-@app.on_event("startup")
-async def startup_event():
-    """Start background tasks when the API starts"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events"""
+    # Startup tasks
     logger.info("Starting API startup tasks...")
 
     # Check external service connections
     try:
-        logger.info("🔌 Checking external service connections...")
-        connection_status = await connection_checker.check_all_connections()
-        logger.info(f"📊 Connection status: {connection_status}")
+        await connection_checker()
+        logger.info("External services are available")
     except Exception as e:
-        logger.error(f"❌ Failed to check connections: {e}")
+        logger.error(f"External service check failed: {e}")
 
-    # Start Telegram bot in background mode
+    # Start background tasks
+    asyncio.create_task(main_orchestrator())
+    asyncio.create_task(telegram_bot())
+
     try:
-        logger.info("🤖 Starting Telegram bot in background mode...")
-        asyncio.create_task(telegram_bot.start_polling_background())
-        logger.info("✅ Telegram bot started successfully in background")
-    except Exception as e:
-        logger.error(f"❌ Failed to start Telegram bot: {e}")
-        logger.error("⚠️ Telegram bot will not be available")
+        yield
+    finally:
+        # Shutdown tasks
+        logger.info("Shutting down API...")
+
+app = FastAPI(
+    title="AI Backlog Assistant API",
+    description="API for managing backlog tasks with AI assistance",
+    version="0.1.0",
+    lifespan=lifespan
+)
 
 class ProcessRequest(BaseModel):
     input_data: str
@@ -274,7 +277,7 @@ class WebappTask(BaseModel):
     id: str
     description: str
     status: str = "new"
-    created_at: str = datetime.utcnow().isoformat()
+    created_at: str = datetime.now(UTC).isoformat()
     recommendation: str = "No recommendation yet"
 
 # In-memory task storage for webapp (for demo purposes)
