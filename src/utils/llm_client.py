@@ -60,8 +60,22 @@ class LLMClient:
         }
 
         try:
+            # Check if the API URL already contains the full path or just the base
+            api_endpoint = self.api_url
+            if not api_endpoint.endswith('/chat/completions'):
+                # If it's just the base URL, append the chat/completions path
+                if api_endpoint.endswith('/v1'):
+                    api_endpoint = api_endpoint + '/chat/completions'
+                elif not api_endpoint.endswith('/v1'):
+                    # Handle case where base URL doesn't end with /v1
+                    if '/v1' in api_endpoint:
+                        api_endpoint = api_endpoint.rstrip('/') + '/chat/completions'
+                    else:
+                        # Last resort - append the full path
+                        api_endpoint = api_endpoint.rstrip('/') + '/v1/chat/completions'
+
             response = requests.post(
-                self.api_url,
+                api_endpoint,
                 headers=headers,
                 json=payload,
                 timeout=30
@@ -69,7 +83,7 @@ class LLMClient:
 
             # Handle 404 error specifically
             if response.status_code == 404:
-                logger.error(f"LLM API endpoint not found: {self.api_url}")
+                logger.error(f"LLM API endpoint not found: {api_endpoint}")
                 logger.error("Please check if the Mistral API URL is correct")
                 return {"response": "", "error": "API endpoint not found"}
 
