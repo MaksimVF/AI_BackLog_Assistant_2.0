@@ -51,14 +51,17 @@ class LLMClient:
         }
 
         payload = {
-            "prompt": prompt,
+            "model": "mistral-large",  # Default model, can be parameterized if needed
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
             "max_tokens": max_tokens,
             "temperature": 0.7
         }
 
         try:
             response = requests.post(
-                f"{self.api_url}/generate",
+                self.api_url,
                 headers=headers,
                 json=payload,
                 timeout=30
@@ -66,7 +69,7 @@ class LLMClient:
 
             # Handle 404 error specifically
             if response.status_code == 404:
-                logger.error(f"LLM API endpoint not found: {self.api_url}/generate")
+                logger.error(f"LLM API endpoint not found: {self.api_url}")
                 logger.error("Please check if the Mistral API URL is correct")
                 return {"response": "", "error": "API endpoint not found"}
 
@@ -75,7 +78,15 @@ class LLMClient:
             try:
                 result = response.json()
                 logger.debug(f"LLM API response: {result}")
-                return result
+
+                # Extract the response content from the chat/completions format
+                if 'choices' in result and len(result['choices']) > 0:
+                    # Extract the content from the first choice
+                    content = result['choices'][0].get('message', {}).get('content', "")
+                    return {"response": content}
+                else:
+                    logger.warning(f"Unexpected LLM API response format: {result}")
+                    return {"response": "", "error": "Unexpected response format"}
             except ValueError as e:
                 logger.warning(f"LLM response is not valid JSON: {e}")
                 logger.warning(f"Raw response: {response.text}")
