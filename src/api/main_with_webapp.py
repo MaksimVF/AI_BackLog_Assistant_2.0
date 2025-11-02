@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 from src.orchestrator.main_orchestrator import MainOrchestrator
-from src.bot.telegram_bot import telegram_bot
+from src.bot.telegram_bot import main_background as telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
 from src.utils.connection_checker import ConnectionChecker
@@ -32,7 +32,11 @@ async def lifespan(app: FastAPI):
 
     # Start background tasks
     orchestrator = MainOrchestrator()
+
+    # Run the async process_workflow method
     asyncio.create_task(orchestrator.process_workflow("Initial workflow", {}))
+
+    # Start the telegram bot (which is async)
     asyncio.create_task(telegram_bot())
 
     try:
@@ -105,7 +109,7 @@ async def create_task(request: TaskRequest):
         logger.info(f"Creating task: {request.input_data[:50]}...")
 
         # Process through the workflow
-        result = main_orchestrator.process_workflow(
+        result = await main_orchestrator.process_workflow(
             request.input_data,
             request.metadata
         )
@@ -262,7 +266,7 @@ async def process_input(request: ProcessRequest):
     try:
         logger.info(f"Processing input: {request.input_data[:50]}...")
 
-        result = main_orchestrator.process_workflow(
+        result = await main_orchestrator.process_workflow(
             request.input_data,
             request.metadata
         )

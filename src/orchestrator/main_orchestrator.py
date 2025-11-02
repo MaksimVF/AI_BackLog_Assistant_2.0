@@ -28,7 +28,7 @@ class MainOrchestrator:
         """Initialize the Main Orchestrator"""
         logger.info("Initializing Main Orchestrator")
 
-    def process_workflow(self, input_data: str, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
+    async def process_workflow(self, input_data: str, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Process the entire workflow from input to analysis
 
