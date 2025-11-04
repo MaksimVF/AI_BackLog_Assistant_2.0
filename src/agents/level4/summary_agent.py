@@ -14,7 +14,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 from src.utils.llm_client import llm_client
-from src.utils.prompts import SUMMARY_PROMPT, RISK_MITIGATION_PROMPT, RESOURCE_OPTIMIZATION_PROMPT
+from src.utils.prompts import SUMMARY_PROMPT, RISK_MITIGATION_PROMPT, RESOURCE_OPTIMIZATION_PROMPT, CONTEXTUAL_RECOMMENDATION_PROMPT
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -189,6 +189,11 @@ class SummaryAgent:
     def _generate_contextual_recommendation(self, analysis: Dict[str, Any], project_timeline: Dict[str, Any], team_workload: Dict[str, Any]) -> Dict[str, Any]:
         """Generate contextual recommendation considering project timeline and team workload"""
         try:
+            # Check if CONTEXTUAL_RECOMMENDATION_PROMPT is defined
+            if 'CONTEXTUAL_RECOMMENDATION_PROMPT' not in globals():
+                logger.error("CONTEXTUAL_RECOMMENDATION_PROMPT is not defined")
+                raise ValueError("CONTEXTUAL_RECOMMENDATION_PROMPT is not defined")
+
             # Use LLM for contextual recommendation
             analysis_str = str(analysis)
             timeline_str = str(project_timeline)
@@ -209,6 +214,15 @@ class SummaryAgent:
                     "next_steps": response.get("next_steps", [])
                 }
 
+        except ValueError as e:
+            logger.error(f"Configuration error: {e}")
+            # Fallback to heuristic
+            return {
+                "recommendation": self._generate_recommendation(analysis),
+                "rationale": self._generate_rationale(analysis),
+                "priority": self._generate_priority(analysis),
+                "next_steps": self._generate_next_steps(analysis)
+            }
         except Exception as e:
             logger.warning(f"LLM contextual recommendation failed, using heuristic: {e}")
             # Fallback to heuristic

@@ -225,7 +225,32 @@ class ContextualizaAgent:
             Context analysis result as dictionary
         """
         try:
+            if not text:
+                logger.warning("Empty text provided for entity extraction")
+                return {
+                    "domain": "unknown",
+                    "entities": [],
+                    "metadata": {
+                        "text_length": 0,
+                        "entity_count": 0,
+                        "analysis_method": "fallback"
+                    }
+                }
+
             analysis = self.analyze_context(text)
+
+            # Check if analysis has the required attributes
+            if not hasattr(analysis, 'domain') or not hasattr(analysis, 'entities'):
+                logger.error("Analysis object is missing required attributes")
+                return {
+                    "domain": "unknown",
+                    "entities": [],
+                    "metadata": {
+                        "text_length": len(text),
+                        "entity_count": 0,
+                        "analysis_method": "fallback"
+                    }
+                }
 
             return {
                 "domain": analysis.domain,
@@ -235,6 +260,17 @@ class ContextualizaAgent:
         except AttributeError as e:
             logger.error(f"Failed to extract entities due to missing attributes: {e}")
             # Return a safe fallback
+            return {
+                "domain": "unknown",
+                "entities": [],
+                "metadata": {
+                    "text_length": len(text),
+                    "entity_count": 0,
+                    "analysis_method": "fallback"
+                }
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error in entity extraction: {e}")
             return {
                 "domain": "unknown",
                 "entities": [],
