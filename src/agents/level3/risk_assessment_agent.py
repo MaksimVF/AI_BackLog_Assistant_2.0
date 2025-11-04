@@ -79,6 +79,7 @@ class RiskAssessmentAgent:
                         # Fallback to heuristic if conversion fails
                         score = self._heuristic_risk_score(text)
                 else:
+                    logger.warning(f"LLM response doesn't contain a number: {response[:100]}...")
                     # Fallback to heuristic if LLM response doesn't contain a number
                     score = self._heuristic_risk_score(text)
 

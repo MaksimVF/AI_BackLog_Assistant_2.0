@@ -179,24 +179,39 @@ class ContextualizaAgent:
             if response and "entities" in response and "domain" in response:
                 # Parse LLM response
                 entities = []
-                for entity_data in response["entities"]:
-                    entities.append(Entity(
-                        entity_type=entity_data.get("type", "unknown"),
-                        text=entity_data.get("text", ""),
-                        start_index=entity_data.get("start_index", 0),
-                        end_index=entity_data.get("end_index", 0),
-                        confidence=entity_data.get("confidence", 0.7)
-                    ))
+                try:
+                    for entity_data in response["entities"]:
+                        entities.append(Entity(
+                            entity_type=entity_data.get("type", "unknown"),
+                            text=entity_data.get("text", ""),
+                            start_index=entity_data.get("start_index", 0),
+                            end_index=entity_data.get("end_index", 0),
+                            confidence=entity_data.get("confidence", 0.7)
+                        ))
 
-                return ContextAnalysis(
-                    domain=response["domain"],
-                    entities=entities,
-                    metadata={
-                        "text_length": len(text),
-                        "entity_count": len(entities),
-                        "analysis_method": "llm"
-                    }
-                )
+                    return ContextAnalysis(
+                        domain=response["domain"],
+                        entities=entities,
+                        metadata={
+                            "text_length": len(text),
+                            "entity_count": len(entities),
+                            "analysis_method": "llm"
+                        }
+                    )
+                except (KeyError, TypeError) as e:
+                    logger.warning(f"Error parsing LLM response entities: {e}")
+                    # Fall back to heuristic if LLM response is malformed
+                    entities = self._simple_entity_extraction(text)
+                    domain = self._determine_domain(text, entities)
+                    return ContextAnalysis(
+                        domain=domain,
+                        entities=entities,
+                        metadata={
+                            "text_length": len(text),
+                            "entity_count": len(entities),
+                            "analysis_method": "llm_fallback"
+                        }
+                    )
 
         except Exception as e:
             logger.warning(f"LLM context analysis failed, falling back to heuristic: {e}")
