@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Request, Header
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 from src.orchestrator.main_orchestrator import MainOrchestrator
@@ -7,6 +7,8 @@ from src.bot.telegram_bot import main_background as telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
 from src.utils.connection_checker import ConnectionChecker
+from src.utils.init_data_verifier import verify_telegram_init_data, get_user_info_from_init_data
+from src.config import Config
 import logging
 import asyncio
 from datetime import datetime, UTC
@@ -295,8 +297,26 @@ async def webapp_root():
     return {"message": "AI Backlog Assistant Web App API"}
 
 @app.post("/webapp/tasks", response_model=WebappTask)
-async def webapp_create_task(task: WebappTask):
-    """Create a new task in webapp"""
+async def webapp_create_task(
+    request: Request,
+    task: WebappTask,
+    x_telegram_init_data: Optional[str] = Header(None)
+):
+    """Create a new task in webapp with Telegram initData verification"""
+    # Verify Telegram initData if provided
+    config = Config()
+    if x_telegram_init_data:
+        if not verify_telegram_init_data(x_telegram_init_data, config.telegram_api_key):
+            logger.warning("Invalid Telegram initData provided")
+            raise HTTPException(status_code=401, detail="Invalid Telegram initData")
+
+        # Extract user info if verification passed
+        user_info = get_user_info_from_init_data(x_telegram_init_data)
+        if user_info:
+            logger.info(f"Task created by Telegram user: {user_info.get('id', 'unknown')}")
+    else:
+        logger.warning("No Telegram initData provided - this may be a security risk")
+
     logger.info(f"Creating webapp task: {task.id}")
     webapp_tasks.append(task)
     return task
@@ -315,8 +335,26 @@ async def webapp_get_task(task_id: str):
     return task
 
 @app.put("/webapp/tasks/{task_id}", response_model=WebappTask)
-async def webapp_update_task(task_id: str, update_data: Dict[str, Any]):
-    """Update a webapp task"""
+async def webapp_update_task(
+    task_id: str,
+    update_data: Dict[str, Any],
+    x_telegram_init_data: Optional[str] = Header(None)
+):
+    """Update a webapp task with Telegram initData verification"""
+    # Verify Telegram initData if provided
+    config = Config()
+    if x_telegram_init_data:
+        if not verify_telegram_init_data(x_telegram_init_data, config.telegram_api_key):
+            logger.warning("Invalid Telegram initData provided")
+            raise HTTPException(status_code=401, detail="Invalid Telegram initData")
+
+        # Extract user info if verification passed
+        user_info = get_user_info_from_init_data(x_telegram_init_data)
+        if user_info:
+            logger.info(f"Task updated by Telegram user: {user_info.get('id', 'unknown')}")
+    else:
+        logger.warning("No Telegram initData provided - this may be a security risk")
+
     task = next((t for t in webapp_tasks if t.id == task_id), None)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")

@@ -168,10 +168,14 @@
             };
 
             try {
+                // Get initData from Telegram Web App
+                const initData = tg.initData || '';
+
                 const response = await fetch(`${API_BASE_URL}/tasks`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': initData
                     },
                     body: JSON.stringify(task)
                 });
@@ -230,10 +234,14 @@
         // Update task status
         async function updateStatus(taskId, newStatus) {
             try {
+                // Get initData from Telegram Web App
+                const initData = tg.initData || '';
+
                 const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': initData
                     },
                     body: JSON.stringify({ status: newStatus })
                 });
