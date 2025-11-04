@@ -685,7 +685,7 @@ class TelegramBot:
             }
 
             # Process through the workflow
-            result = main_orchestrator.process_workflow(message_text, metadata)
+            result = await main_orchestrator.process_workflow(message_text, metadata)
 
             # Generate a unique task ID based on timestamp and message content (optimized)
             import time

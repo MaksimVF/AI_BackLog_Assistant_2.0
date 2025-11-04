@@ -93,6 +93,11 @@ class LLMClient:
             response.raise_for_status()
 
             try:
+                # Check if response is actually HTML (like error pages)
+                if 'text/html' in response.headers.get('Content-Type', '').lower():
+                    logger.warning(f"LLM API returned HTML instead of JSON: {response.text[:200]}...")
+                    return {"response": "", "error": "HTML response received instead of JSON"}
+
                 result = response.json()
                 logger.debug(f"LLM API response: {result}")
 
@@ -106,7 +111,7 @@ class LLMClient:
                     return {"response": "", "error": "Unexpected response format"}
             except ValueError as e:
                 logger.warning(f"LLM response is not valid JSON: {e}")
-                logger.warning(f"Raw response: {response.text}")
+                logger.warning(f"Raw response: {response.text[:500]}...")  # Log first 500 chars to avoid huge logs
                 return {"response": "", "error": f"Invalid JSON response: {e}"}
 
         except requests.exceptions.RequestException as e:
