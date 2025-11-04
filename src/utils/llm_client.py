@@ -11,6 +11,7 @@ import os
 import json
 from typing import Dict, Any, Optional
 import requests
+from ratelimit import limits, sleep_and_retry
 from src.config import Config
 
 # Configure logging
@@ -30,6 +31,8 @@ class LLMClient:
         else:
             logger.info(f"✅ LLM Client configured with API URL: {self.api_url}")
 
+    @sleep_and_retry
+    @limits(calls=1, period=1)  # Limit to 1 call per second
     def _call_mistral_api(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
         Call the Mistral API with a prompt
@@ -110,6 +113,8 @@ class LLMClient:
             logger.error(f"LLM API request failed: {e}")
             return {"response": "", "error": str(e)}
 
+    @sleep_and_retry
+    @limits(calls=1, period=1)  # Limit to 1 call per second
     def generate_text(self, prompt: str, max_tokens: int = 500) -> str:
         """
         Generate text using the LLM
@@ -124,6 +129,8 @@ class LLMClient:
         result = self._call_mistral_api(prompt, max_tokens)
         return result.get("response", "")
 
+    @sleep_and_retry
+    @limits(calls=1, period=1)  # Limit to 1 call per second
     def generate_json(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
         Generate JSON output using the LLM
