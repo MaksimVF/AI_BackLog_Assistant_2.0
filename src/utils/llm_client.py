@@ -110,7 +110,7 @@ class LLMClient:
         }
 
         payload = {
-            "model": "mistral-small",  # Default model, can be parameterized if needed
+            "model": Config.MISTRAL_MODEL,  # Use configurable model
             "messages": [
                 {"role": "user", "content": prompt}
             ],
