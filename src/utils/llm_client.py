@@ -9,11 +9,13 @@ This module provides a unified interface for interacting with Language Models.
 import logging
 import os
 import json
+import time
 from typing import Dict, Any, Optional
 import requests
 from ratelimit import limits, sleep_and_retry
 from src.config import Config
 import json_repair
+from threading import Lock
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -27,13 +29,66 @@ class LLMClient:
         self.api_key = Config.MISTRAL_API_KEY
         self.api_url = Config.MISTRAL_API_URL
 
+        # Dynamic rate limiting parameters
+        self._current_delay = 1  # Start with 1 second delay
+        self._max_delay = 8  # Maximum delay of 8 seconds
+        self._failure_count = 0
+        self._success_count = 0
+        self._rate_limit_lock = Lock()
+        self._last_request_time = 0
+        self._requests_in_minute = 0
+        self._minute_window_start = time.time()
+
         if not self.api_key:
             logger.warning("⚠️ LLM API key not configured - using mock responses")
         else:
             logger.info(f"✅ LLM Client configured with API URL: {self.api_url}")
 
-    @sleep_and_retry
-    @limits(calls=1, period=1)  # Limit to 1 call per second
+    def _adjust_rate_limiting(self, success: bool):
+        """Adjust rate limiting based on recent success/failure pattern"""
+        with self._rate_limit_lock:
+            now = time.time()
+
+            # Reset counters if we're in a new minute window
+            if now - self._minute_window_start > 60:
+                self._requests_in_minute = 0
+                self._minute_window_start = now
+
+            # Track request count
+            self._requests_in_minute += 1
+
+            # Adjust delay based on success/failure
+            if success:
+                self._success_count += 1
+                self._failure_count = max(0, self._failure_count - 1)
+
+                # If we have consistent success, reduce delay (but not below 1s)
+                if self._success_count >= 3 and self._current_delay > 1:
+                    self._current_delay = max(1, self._current_delay // 2)
+                    self._success_count = 0
+            else:
+                self._failure_count += 1
+                self._success_count = 0
+
+                # If we have consistent failures, increase delay (but not above max)
+                if self._failure_count >= 2:
+                    self._current_delay = min(self._max_delay, self._current_delay * 2)
+                    self._failure_count = 0
+
+            # Enforce maximum of 10 requests per minute
+            if self._requests_in_minute > 10:
+                # Calculate time to wait until next minute
+                time_since_window_start = now - self._minute_window_start
+                wait_time = 60 - time_since_window_start
+                if wait_time > 0:
+                    logger.warning(f"Rate limit exceeded: 10 requests/minute. Waiting {wait_time:.1f}s")
+                    time.sleep(wait_time)
+                    # Reset for new minute
+                    self._requests_in_minute = 1
+                    self._minute_window_start = time.time()
+
+            logger.debug(f"Current rate limit delay: {self._current_delay}s")
+
     def _call_mistral_api(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
         Call the Mistral API with a prompt
@@ -55,13 +110,27 @@ class LLMClient:
         }
 
         payload = {
-            "model": "mistral-small",  # Default model, can be parameterized if needed
+            "model": Config.MISTRAL_MODEL,  # Use configurable model
             "messages": [
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": max_tokens,
             "temperature": 0.7
         }
+
+        # Apply dynamic rate limiting
+        with self._rate_limit_lock:
+            now = time.time()
+            time_since_last_request = now - self._last_request_time
+
+            # Calculate actual delay needed
+            delay_needed = max(0, self._current_delay - time_since_last_request)
+            if delay_needed > 0:
+                logger.debug(f"Rate limiting: waiting {delay_needed:.2f}s")
+                time.sleep(delay_needed)
+
+            # Update last request time
+            self._last_request_time = time.time()
 
         try:
             # Check if the API URL already contains the full path or just the base
@@ -89,6 +158,7 @@ class LLMClient:
             if response.status_code == 404:
                 logger.error(f"LLM API endpoint not found: {api_endpoint}")
                 logger.error("Please check if the Mistral API URL is correct")
+                self._adjust_rate_limiting(False)  # Record failure
                 return {"response": "", "error": "API endpoint not found"}
 
             response.raise_for_status()
@@ -97,6 +167,7 @@ class LLMClient:
                 # Check if response is actually HTML (like error pages)
                 if 'text/html' in response.headers.get('Content-Type', '').lower():
                     logger.warning(f"LLM API returned HTML instead of JSON: {response.text[:200]}...")
+                    self._adjust_rate_limiting(False)  # Record failure
                     return {"response": "", "error": "HTML response received instead of JSON"}
 
                 try:
@@ -111,6 +182,7 @@ class LLMClient:
                     except Exception as repair_error:
                         logger.error(f"Failed to repair JSON: {repair_error}")
                         logger.warning(f"Raw response: {response.text[:500]}...")
+                        self._adjust_rate_limiting(False)  # Record failure
                         return {"response": "", "error": f"Invalid JSON response: {repair_error}"}
 
                 logger.debug(f"LLM API response: {result}")
@@ -119,21 +191,23 @@ class LLMClient:
                 if 'choices' in result and len(result['choices']) > 0:
                     # Extract the content from the first choice
                     content = result['choices'][0].get('message', {}).get('content', "")
+                    self._adjust_rate_limiting(True)  # Record success
                     return {"response": content}
                 else:
                     logger.warning(f"Unexpected LLM API response format: {result}")
+                    self._adjust_rate_limiting(False)  # Record failure
                     return {"response": "", "error": "Unexpected response format"}
             except ValueError as e:
                 logger.warning(f"LLM response is not valid JSON: {e}")
                 logger.warning(f"Raw response: {response.text[:500]}...")  # Log first 500 chars to avoid huge logs
+                self._adjust_rate_limiting(False)  # Record failure
                 return {"response": "", "error": f"Invalid JSON response: {e}"}
 
         except requests.exceptions.RequestException as e:
             logger.error(f"LLM API request failed: {e}")
+            self._adjust_rate_limiting(False)  # Record failure
             return {"response": "", "error": str(e)}
 
-    @sleep_and_retry
-    @limits(calls=1, period=1)  # Limit to 1 call per second
     def generate_text(self, prompt: str, max_tokens: int = 500) -> str:
         """
         Generate text using the LLM
@@ -148,8 +222,6 @@ class LLMClient:
         result = self._call_mistral_api(prompt, max_tokens)
         return result.get("response", "")
 
-    @sleep_and_retry
-    @limits(calls=1, period=1)  # Limit to 1 call per second
     def generate_json(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
         Generate JSON output using the LLM
