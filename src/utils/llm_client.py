@@ -13,6 +13,7 @@ from typing import Dict, Any, Optional
 import requests
 from ratelimit import limits, sleep_and_retry
 from src.config import Config
+import json_repair
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -98,7 +99,20 @@ class LLMClient:
                     logger.warning(f"LLM API returned HTML instead of JSON: {response.text[:200]}...")
                     return {"response": "", "error": "HTML response received instead of JSON"}
 
-                result = response.json()
+                try:
+                    result = response.json()
+                except ValueError:
+                    # Try to repair the JSON if it's malformed
+                    logger.warning("Attempting to repair malformed JSON response")
+                    try:
+                        repaired_json = json_repair.loads(response.text)
+                        result = json.loads(repaired_json)
+                        logger.info("Successfully repaired JSON response")
+                    except Exception as repair_error:
+                        logger.error(f"Failed to repair JSON: {repair_error}")
+                        logger.warning(f"Raw response: {response.text[:500]}...")
+                        return {"response": "", "error": f"Invalid JSON response: {repair_error}"}
+
                 logger.debug(f"LLM API response: {result}")
 
                 # Extract the response content from the chat/completions format
@@ -152,14 +166,29 @@ class LLMClient:
 
         try:
             # Try to parse the response as JSON
-            if response_text.startswith("{") and response_text.endswith("}"):
+            if response_text.strip().startswith("{") and response_text.strip().endswith("}"):
                 return json.loads(response_text)
             else:
-                logger.warning("LLM response is not valid JSON")
-                return {"error": "Invalid JSON format"}
+                # Try to repair the JSON if it's malformed
+                logger.warning("LLM response is not valid JSON, attempting repair")
+                try:
+                    repaired_json = json_repair.loads(response_text)
+                    result = json.loads(repaired_json)
+                    logger.info("Successfully repaired JSON response")
+                    return result
+                except Exception as repair_error:
+                    logger.error(f"Failed to repair JSON: {repair_error}")
+                    return {"error": f"Invalid JSON format: {repair_error}"}
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse LLM JSON response: {e}")
-            return {"error": f"JSON parsing error: {e}"}
+            # Try to repair the JSON as a last resort
+            try:
+                repaired_json = json_repair.loads(response_text)
+                result = json.loads(repaired_json)
+                logger.info("Successfully repaired JSON response after decode error")
+                return result
+            except Exception:
+                return {"error": f"JSON parsing error: {e}"}
 
 # Create a global instance for easy access
 llm_client = LLMClient()
