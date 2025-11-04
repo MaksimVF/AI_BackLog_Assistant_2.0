@@ -70,9 +70,14 @@ class RiskAssessmentAgent:
                 import re
                 numbers = re.findall(r'\d+(\.\d+)?', response)
                 if numbers:
-                    score = float(numbers[0])
-                    # Ensure score is within 0-10 range
-                    score = min(10.0, max(0.0, score))
+                    try:
+                        score = float(numbers[0])
+                        # Ensure score is within 0-10 range
+                        score = min(10.0, max(0.0, score))
+                    except ValueError:
+                        logger.warning(f"Could not convert LLM response to float: {numbers[0]}")
+                        # Fallback to heuristic if conversion fails
+                        score = self._heuristic_risk_score(text)
                 else:
                     # Fallback to heuristic if LLM response doesn't contain a number
                     score = self._heuristic_risk_score(text)
