@@ -29,8 +29,8 @@ class GraphState(BaseModel):
     """State for the Level 1 graph processing"""
     input_data: str
     metadata: Optional[Dict[str, Any]] = None
-    modality_detection: Optional[Dict[str, Any]] = None
-    input_processing: Optional[Dict[str, Any]] = None
+    modality_result: Optional[Dict[str, Any]] = None
+    input_result: Optional[Dict[str, Any]] = None
     preprocessing_result: Optional[Dict[str, Any]] = None
     messages: List[Any] = []
 
@@ -54,41 +54,41 @@ class Level1GraphAgent:
         graph = StateGraph(GraphState)
 
         # Add nodes for each processing step
-        graph.add_node("modality_detection", self._run_modality_detection)
-        graph.add_node("input_processing", self._run_input_processing)
-        graph.add_node("preprocessing", self._run_preprocessing)
+        graph.add_node("detect_modality", self._run_modality_detection)
+        graph.add_node("process_input", self._run_input_processing)
+        graph.add_node("preprocess", self._run_preprocessing)
 
         # Define the execution flow
-        graph.set_entry_point("modality_detection")
-        graph.add_edge("modality_detection", "input_processing")
-        graph.add_edge("input_processing", "preprocessing")
-        graph.set_finish_point("preprocessing")  # Set final node
+        graph.set_entry_point("detect_modality")
+        graph.add_edge("detect_modality", "process_input")
+        graph.add_edge("process_input", "preprocess")
+        graph.set_finish_point("preprocess")  # Set final node
 
         return graph
 
     def _run_modality_detection(self, state: GraphState) -> GraphState:
         """Run modality detection"""
-        if state.modality_detection is None:
+        if state.modality_result is None:
             modality = self.modality_detector.detect(state.input_data)
             result = {
                 "modality": modality,
                 "detection_method": "filename_extension"
             }
-            state.modality_detection = result
+            state.modality_result = result
             state.messages.append(AIMessage(content=f"Modality detected: {modality}"))
 
         return state
 
     def _run_input_processing(self, state: GraphState) -> GraphState:
         """Run input processing"""
-        if state.input_processing is None:
+        if state.input_result is None:
             processed_data = self.input_agent.process(state.input_data, state.metadata)
             result = {
                 "content": processed_data.content,
                 "modality": processed_data.modality,
                 "metadata": processed_data.metadata
             }
-            state.input_processing = result
+            state.input_result = result
             state.messages.append(AIMessage(content=f"Input processed as {processed_data.modality}"))
 
         return state
@@ -96,10 +96,10 @@ class Level1GraphAgent:
     def _run_preprocessing(self, state: GraphState) -> GraphState:
         """Run preprocessing for file-based inputs"""
         if state.preprocessing_result is None:
-            modality = state.modality_detection.get("modality", "text")
+            modality = state.modality_result.get("modality", "text")
             if modality in ["pdf", "audio", "image"]:
                 # For file-based inputs, use preprocessor
-                file_path = state.input_processing.get("content", "")
+                file_path = state.input_result.get("content", "")
                 text, metadata = self.preprocessor.preprocess_file(file_path, modality)
                 result = {
                     "processed_text": text,
@@ -110,7 +110,7 @@ class Level1GraphAgent:
             else:
                 # For text inputs, no preprocessing needed
                 result = {
-                    "processed_text": state.input_processing.get("content", ""),
+                    "processed_text": state.input_result.get("content", ""),
                     "metadata": {"processing_status": "not_required"}
                 }
                 state.preprocessing_result = result
