@@ -64,6 +64,11 @@ class Level1GraphAgent:
         graph.add_edge("process_input", "preprocess")
         graph.set_finish_point("preprocess")  # Set final node
 
+        # Add edges for state keys
+        graph.add_edge("detect_modality", "modality_result")
+        graph.add_edge("process_input", "input_result")
+        graph.add_edge("preprocess", "preprocessing_result")
+
         return graph
 
     def _run_modality_detection(self, state: GraphState) -> GraphState:
