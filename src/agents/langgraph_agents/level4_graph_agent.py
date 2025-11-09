@@ -27,7 +27,7 @@ class GraphState(BaseModel):
     aggregation_result: Optional[Dict[str, Any]] = None
     visualization_result: Optional[Dict[str, Any]] = None
     summary_result: Optional[Dict[str, Any]] = None
-    enhanced_summary: Optional[Dict[str, Any]] = None
+    final_summary: Optional[Dict[str, Any]] = None
     messages: List[Any] = []
 
 class Level4GraphAgent:
@@ -53,14 +53,14 @@ class Level4GraphAgent:
         graph.add_node("aggregation", self._run_aggregation)
         graph.add_node("visualization", self._run_visualization)
         graph.add_node("summary", self._run_summary)
-        graph.add_node("enhanced_summary", self._run_enhanced_summary)
+        graph.add_node("final_summary", self._run_enhanced_summary)
 
         # Define the execution flow without cycles
         graph.set_entry_point("aggregation")
         graph.add_edge("aggregation", "visualization")
         graph.add_edge("visualization", "summary")
-        graph.add_edge("summary", "enhanced_summary")
-        graph.set_finish_point("enhanced_summary")  # Set final node
+        graph.add_edge("summary", "final_summary")
+        graph.set_finish_point("final_summary")  # Set final node
 
         return graph
 
@@ -103,7 +103,7 @@ class Level4GraphAgent:
             result = self.summary_agent.generate_enhanced_recommendation(
                 state.aggregation_result, project_context
             )
-            state.enhanced_summary = result
+            state.final_summary = result
             state.messages.append(AIMessage(content="Enhanced summary generated"))
 
         return state
