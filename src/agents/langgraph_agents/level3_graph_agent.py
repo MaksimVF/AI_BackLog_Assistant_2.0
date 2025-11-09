@@ -29,7 +29,7 @@ class GraphState(BaseModel):
     task_type: str = "general"
     risk_result: Optional[Dict[str, Any]] = None
     resource_result: Optional[Dict[str, Any]] = None
-    impact_evaluation: Optional[Dict[str, Any]] = None
+    impact_result: Optional[Dict[str, Any]] = None
     confidence_urgency: Optional[Dict[str, Any]] = None
     prioritization: Optional[Dict[str, Any]] = None
     messages: List[Any] = []
@@ -51,15 +51,15 @@ class Level3GraphAgent:
         # Add nodes for each processing step
         graph.add_node("assess_risk", self._run_risk_assessment)
         graph.add_node("analyze_resources", self._run_resource_analysis)
-        graph.add_node("impact_evaluation", self._run_impact_evaluation)
+        graph.add_node("evaluate_impact", self._run_impact_evaluation)
         graph.add_node("confidence_urgency", self._run_confidence_urgency)
         graph.add_node("task_prioritization", self._run_task_prioritization)
 
         # Define the execution flow without cycles
         graph.set_entry_point("assess_risk")
         graph.add_edge("assess_risk", "analyze_resources")
-        graph.add_edge("analyze_resources", "impact_evaluation")
-        graph.add_edge("impact_evaluation", "confidence_urgency")
+        graph.add_edge("analyze_resources", "evaluate_impact")
+        graph.add_edge("evaluate_impact", "confidence_urgency")
         graph.add_edge("confidence_urgency", "task_prioritization")
         graph.set_finish_point("task_prioritization")  # Set final node
 
@@ -83,9 +83,9 @@ class Level3GraphAgent:
 
     def _run_impact_evaluation(self, state: GraphState) -> GraphState:
         """Run impact evaluation"""
-        if state.impact_evaluation is None:
+        if state.impact_result is None:
             result = impact_potential_agent.assess_impact(state.input_text)
-            state.impact_evaluation = result
+            state.impact_result = result
             state.messages.append(AIMessage(content=f"Impact score: {result['impact_score']}"))
         return state
 
