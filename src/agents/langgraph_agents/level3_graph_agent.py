@@ -30,7 +30,7 @@ class GraphState(BaseModel):
     risk_result: Optional[Dict[str, Any]] = None
     resource_result: Optional[Dict[str, Any]] = None
     impact_result: Optional[Dict[str, Any]] = None
-    confidence_urgency: Optional[Dict[str, Any]] = None
+    confidence_result: Optional[Dict[str, Any]] = None
     prioritization: Optional[Dict[str, Any]] = None
     messages: List[Any] = []
 
@@ -52,15 +52,15 @@ class Level3GraphAgent:
         graph.add_node("assess_risk", self._run_risk_assessment)
         graph.add_node("analyze_resources", self._run_resource_analysis)
         graph.add_node("evaluate_impact", self._run_impact_evaluation)
-        graph.add_node("confidence_urgency", self._run_confidence_urgency)
+        graph.add_node("analyze_confidence", self._run_confidence_urgency)
         graph.add_node("task_prioritization", self._run_task_prioritization)
 
         # Define the execution flow without cycles
         graph.set_entry_point("assess_risk")
         graph.add_edge("assess_risk", "analyze_resources")
         graph.add_edge("analyze_resources", "evaluate_impact")
-        graph.add_edge("evaluate_impact", "confidence_urgency")
-        graph.add_edge("confidence_urgency", "task_prioritization")
+        graph.add_edge("evaluate_impact", "analyze_confidence")
+        graph.add_edge("analyze_confidence", "task_prioritization")
         graph.set_finish_point("task_prioritization")  # Set final node
 
         return graph
@@ -91,9 +91,9 @@ class Level3GraphAgent:
 
     def _run_confidence_urgency(self, state: GraphState) -> GraphState:
         """Run confidence and urgency analysis"""
-        if state.confidence_urgency is None:
+        if state.confidence_result is None:
             result = confidence_urgency_agent.score_task(state.input_text)
-            state.confidence_urgency = result
+            state.confidence_result = result
             state.messages.append(AIMessage(content=f"Confidence: {result['confidence']}, Urgency: {result['urgency']}"))
         return state
 
