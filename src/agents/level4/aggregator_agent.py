@@ -59,10 +59,10 @@ class AggregatorAgent:
             Aggregated analysis result
         """
         # Extract scores from Level 3 data
-        risk_score = level3_data["risk"]["risk_score"]
-        impact_score = level3_data["impact"]["impact_score"]
-        urgency = level3_data["confidence_urgency"]["urgency"]
-        confidence = level3_data["confidence_urgency"]["confidence"]
+        risk_score = level3_data["risk"].score if hasattr(level3_data["risk"], "score") else 0.0
+        impact_score = level3_data["impact"].score if hasattr(level3_data["impact"], "score") else 0.0
+        urgency = level3_data["confidence_urgency"].urgency if hasattr(level3_data["confidence_urgency"], "urgency") else 0.0
+        confidence = level3_data["confidence_urgency"].confidence if hasattr(level3_data["confidence_urgency"], "confidence") else 0.0
 
         # Calculate overall score
         overall_score = self._calculate_overall_score(risk_score, impact_score, urgency)

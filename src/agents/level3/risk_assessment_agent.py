@@ -68,12 +68,14 @@ class RiskAssessmentAgent:
 
                 # Try to extract a number from the response
                 import re
+                logger.debug(f"LLM response for risk assessment: {response[:200]}...")
                 numbers = re.findall(r'\d+(\.\d+)?', response)
                 if numbers:
                     try:
                         score = float(numbers[0])
                         # Ensure score is within 0-10 range
                         score = min(10.0, max(0.0, score))
+                        logger.debug(f"Extracted risk score: {score}")
                     except ValueError:
                         logger.warning(f"Could not convert LLM response to float: {numbers[0]}")
                         # Fallback to heuristic if conversion fails
