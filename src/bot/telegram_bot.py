@@ -673,6 +673,19 @@ class TelegramBot:
             duplicate_check = await duplicate_detector.check_duplicate(message_text, user_id)
             logger.info(f"Duplicate check result: {duplicate_check}")
 
+            # If it's a duplicate, return early without creating a new task
+            if duplicate_check.get("is_duplicate", False):
+                return {
+                    "status": "completed",
+                    "task_id": duplicate_check.get("original_task_id", "unknown"),
+                    "result": {
+                        "is_duplicate": True,
+                        "duplicate_analysis": duplicate_check.get("analysis", "Duplicate detected"),
+                        "original_task_id": duplicate_check.get("original_task_id", "unknown"),
+                        "recommendation": "This is a duplicate task"
+                    }
+                }
+
             # Create metadata for the task
             metadata = {
                 "source": "telegram",
