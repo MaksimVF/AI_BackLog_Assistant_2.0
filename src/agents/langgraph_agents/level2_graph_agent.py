@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class GraphState(BaseModel):
     """State for the Level 2 graph processing"""
     input_text: str
-    advanced_classification: Optional[Dict[str, Any]] = None
+    classification_result: Optional[Dict[str, Any]] = None
     reflection_result: Optional[Dict[str, Any]] = None
     semantic_blocks: Optional[Dict[str, Any]] = None
     context_analysis: Optional[Dict[str, Any]] = None
@@ -53,14 +53,14 @@ class Level2GraphAgent:
         graph = StateGraph(GraphState)
 
         # Add nodes for each processing step
-        graph.add_node("advanced_classification", self._run_advanced_classification)
+        graph.add_node("classify_task", self._run_advanced_classification)
         graph.add_node("reflection_analysis", self._run_reflection_analysis)
         graph.add_node("semantic_segmentation", self._run_semantic_segmentation)
         graph.add_node("context_extraction", self._run_context_extraction)
 
         # Define the execution flow without cycles
-        graph.set_entry_point("advanced_classification")
-        graph.add_edge("advanced_classification", "reflection_analysis")
+        graph.set_entry_point("classify_task")
+        graph.add_edge("classify_task", "reflection_analysis")
         graph.add_edge("reflection_analysis", "semantic_segmentation")
         graph.add_edge("semantic_segmentation", "context_extraction")
         graph.set_finish_point("context_extraction")  # Set final node
@@ -69,9 +69,9 @@ class Level2GraphAgent:
 
     def _run_advanced_classification(self, state: GraphState) -> GraphState:
         """Run advanced task classification"""
-        if state.advanced_classification is None:
+        if state.classification_result is None:
             result = self.advanced_classifier.classify_task(state.input_text)
-            state.advanced_classification = result.model_dump()
+            state.classification_result = result.model_dump()
             state.messages.append(AIMessage(content=f"Advanced classification: {result.task_type}"))
 
         return state
