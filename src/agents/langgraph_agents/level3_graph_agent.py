@@ -27,7 +27,7 @@ class GraphState(BaseModel):
     """State for the Level 3 graph processing"""
     input_text: str
     task_type: str = "general"
-    risk_assessment: Optional[Dict[str, Any]] = None
+    risk_result: Optional[Dict[str, Any]] = None
     resource_analysis: Optional[Dict[str, Any]] = None
     impact_evaluation: Optional[Dict[str, Any]] = None
     confidence_urgency: Optional[Dict[str, Any]] = None
@@ -49,15 +49,15 @@ class Level3GraphAgent:
         graph = StateGraph(GraphState)
 
         # Add nodes for each processing step
-        graph.add_node("risk_assessment", self._run_risk_assessment)
+        graph.add_node("assess_risk", self._run_risk_assessment)
         graph.add_node("resource_analysis", self._run_resource_analysis)
         graph.add_node("impact_evaluation", self._run_impact_evaluation)
         graph.add_node("confidence_urgency", self._run_confidence_urgency)
         graph.add_node("task_prioritization", self._run_task_prioritization)
 
         # Define the execution flow without cycles
-        graph.set_entry_point("risk_assessment")
-        graph.add_edge("risk_assessment", "resource_analysis")
+        graph.set_entry_point("assess_risk")
+        graph.add_edge("assess_risk", "resource_analysis")
         graph.add_edge("resource_analysis", "impact_evaluation")
         graph.add_edge("impact_evaluation", "confidence_urgency")
         graph.add_edge("confidence_urgency", "task_prioritization")
@@ -67,9 +67,9 @@ class Level3GraphAgent:
 
     def _run_risk_assessment(self, state: GraphState) -> GraphState:
         """Run risk assessment"""
-        if state.risk_assessment is None:
+        if state.risk_result is None:
             result = risk_assessment_agent.evaluate_risk(state.input_text)
-            state.risk_assessment = result
+            state.risk_result = result
             state.messages.append(AIMessage(content=f"Risk assessment: {result['risk_score']}"))
         return state
 
