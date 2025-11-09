@@ -67,7 +67,7 @@ def test_level1_integration():
             print(f"   ✅ Content: {content[:50]}...")
 
             # Verify the result
-            if detected_modality == test_case["expected_modality"]:
+            if detected_modality == test_case["expected_modality"] and content:
                 print(f"   ✅ Test passed")
             else:
                 print(f"   ❌ Test failed")

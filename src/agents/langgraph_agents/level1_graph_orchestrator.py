@@ -44,9 +44,9 @@ class Level1GraphOrchestrator:
 
         # Extract the relevant information
         return {
-            "content": result["input_processing"].get("content", ""),
-            "modality": result["modality_detection"].get("modality", "unknown"),
-            "metadata": result["preprocessing"].get("metadata", {}),
+            "content": result.get("input_processing", {}).get("content", ""),
+            "modality": result.get("modality_detection", {}).get("modality", "unknown"),
+            "metadata": result.get("preprocessing", {}).get("metadata", {}),
             "processing_status": "success",
             "raw_result": result  # Include the full result for debugging
         }
