@@ -19,9 +19,9 @@ scikit-learn==1.7.2  # Machine learning library for duplicate detection
 
 # LangGraph dependencies
 pydantic==2.9.1
-langgraph==0.1.14
-langchain-core>=0.2.22,<0.3
-langchain==0.2.10
+langgraph==1.0.0
+langchain-core>=1.0.0,<2.0.0
+langchain==1.0.0
 
 plotly==5.22.0  # Visualization library for charts and graphs
 pandas==2.2.2  # Data manipulation library required for Plotly Express
