@@ -16,7 +16,6 @@ import requests
 from ratelimit import limits, sleep_and_retry
 from src.config import Config
 import json_repair
-import asyncio
 from threading import Lock
 
 # Configure logging
@@ -65,7 +64,6 @@ class LLMClient:
         self._last_request_time = 0
         self._requests_in_minute = 0
         self._minute_window_start = time.time()
-        self._semaphore = asyncio.Semaphore(1)  # Limit to 1 concurrent request
 
         if not self.api_key:
             logger.warning("⚠️ LLM API key not configured - using mock responses")
@@ -117,7 +115,7 @@ class LLMClient:
 
             logger.debug(f"Current rate limit delay: {self._current_delay}s")
 
-    async def _call_mistral_api(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
+    def _call_mistral_api(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
         Call the Mistral API with a prompt
 
@@ -146,28 +144,27 @@ class LLMClient:
             "temperature": 0.7
         }
 
-        # Apply dynamic rate limiting with async support
-        async with self._semaphore:  # Ensure only 1 request at a time
-            with self._rate_limit_lock:
-                now = time.time()
-                time_since_last_request = now - self._last_request_time
+        # Apply dynamic rate limiting
+        with self._rate_limit_lock:
+            now = time.time()
+            time_since_last_request = now - self._last_request_time
 
-                # Calculate actual delay needed
-                delay_needed = max(0, self._current_delay - time_since_last_request)
-                if delay_needed > 0:
-                    logger.debug(f"Rate limiting: waiting {delay_needed:.2f}s")
-                    await asyncio.sleep(delay_needed)
+            # Calculate actual delay needed
+            delay_needed = max(0, self._current_delay - time_since_last_request)
+            if delay_needed > 0:
+                logger.debug(f"Rate limiting: waiting {delay_needed:.2f}s")
+                time.sleep(delay_needed)
 
-                # Check if we're exceeding 5 requests/minute
-                if self._requests_in_minute >= 5 and (now - self._minute_window_start) < 60:
-                    wait_time = 60 - (now - self._minute_window_start)
-                    logger.warning(f"Rate limit (5/min) exceeded. Waiting {wait_time:.1f}s")
-                    await asyncio.sleep(wait_time)
-                    self._requests_in_minute = 1
-                    self._minute_window_start = time.time()
+            # Check if we're exceeding 5 requests/minute
+            if self._requests_in_minute >= 5 and (now - self._minute_window_start) < 60:
+                wait_time = 60 - (now - self._minute_window_start)
+                logger.warning(f"Rate limit (5/min) exceeded. Waiting {wait_time:.1f}s")
+                time.sleep(wait_time)
+                self._requests_in_minute = 1
+                self._minute_window_start = time.time()
 
-                # Update last request time
-                self._last_request_time = time.time()
+            # Update last request time
+            self._last_request_time = time.time()
 
         try:
             # Check if the API URL already contains the full path or just the base
@@ -203,7 +200,7 @@ class LLMClient:
                 logger.error("LLM API rate limit exceeded (429)")
                 retry_after = int(response.headers.get('Retry-After', 60))
                 logger.warning(f"Waiting {retry_after}s before retry")
-                await asyncio.sleep(retry_after)
+                time.sleep(retry_after)
                 self._adjust_rate_limiting(False)  # Record failure
                 return {"response": "", "error": f"Rate limit exceeded. Retry after {retry_after}s"}
 
@@ -269,9 +266,7 @@ class LLMClient:
         Returns:
             Generated text
         """
-        # Use asyncio.run for backward compatibility
-        import asyncio
-        result = asyncio.run(self._call_mistral_api(prompt, max_tokens))
+        result = self._call_mistral_api(prompt, max_tokens)
         return result.get("response", "")
 
     def generate_json(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
@@ -285,9 +280,7 @@ class LLMClient:
         Returns:
             Parsed JSON response
         """
-        # Use asyncio.run for backward compatibility
-        import asyncio
-        result = asyncio.run(self._call_mistral_api(prompt, max_tokens))
+        result = self._call_mistral_api(prompt, max_tokens)
         response_text = result.get("response", "")
 
         if not response_text:
