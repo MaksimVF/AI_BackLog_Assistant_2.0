@@ -143,8 +143,8 @@ class Level1GraphAgent:
         # Extract the values from the result
         return {
             "input_data": result.get("input_data", initial_state.input_data),
-            "modality_detection": result.get("modality_detection", {}),
-            "input_processing": result.get("input_processing", {}),
+            "modality_detection": result.get("modality_result", {}),
+            "input_processing": result.get("input_result", {}),
             "preprocessing": result.get("preprocessing_result", {}),
             "messages": [msg.dict() for msg in result.get("messages", [])]
         }
