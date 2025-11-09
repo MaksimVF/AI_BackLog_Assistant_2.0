@@ -193,6 +193,14 @@ class DuplicateDetector:
                     # Check for exact match first
                     if task.input_data == message_text:
                         exact_duplicates.append(task)
+                        result["is_duplicate"] = True
+                        result["original_task_id"] = task.task_id
+                        result["analysis"] = f"Exact duplicate found: task_{task.task_id}"
+                        result["most_similar_task"] = task.input_data
+                        result["highest_similarity"] = 1.0
+                        result["last_occurrence"] = task.created_at
+                        result["time_since_last"] = (datetime.utcnow() - task.created_at).total_seconds() / 60
+                        break  # Stop checking once we find an exact duplicate
 
                     # Calculate similarity scores
                     jaccard = self.jaccard_similarity(task.input_data, message_text)
@@ -212,6 +220,10 @@ class DuplicateDetector:
                         "avg_similarity": avg_similarity,
                         "created_at": task.created_at
                     })
+
+                # If we found exact duplicates, return immediately
+                if exact_duplicates:
+                    return result
 
                 # Sort by average similarity (highest first)
                 similarity_scores.sort(key=lambda x: x["avg_similarity"], reverse=True)
