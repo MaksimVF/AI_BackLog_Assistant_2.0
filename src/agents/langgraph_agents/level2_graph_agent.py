@@ -131,7 +131,7 @@ class Level2GraphAgent:
             "reflection": result.get("reflection_result"),
             "semantic_blocks": result.get("semantic_blocks"),
             "context": result.get("context_analysis"),
-            "messages": [msg.model_dump() for msg in result.get("messages", [])]
+            "messages": [msg.dict() for msg in result.get("messages", [])]
         }
 
 # Create a global instance for easy access
