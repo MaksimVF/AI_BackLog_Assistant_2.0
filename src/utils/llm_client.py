@@ -56,14 +56,16 @@ class LLMClient:
         self.api_url = Config.MISTRAL_API_URL
 
         # Dynamic rate limiting parameters
-        self._current_delay = 1  # Start with 1 second delay
-        self._max_delay = 8  # Maximum delay of 8 seconds
+        self._current_delay = 0.5  # Start with 0.5 second delay
+        self._max_delay = 4  # Maximum delay of 4 seconds
         self._failure_count = 0
         self._success_count = 0
         self._rate_limit_lock = Lock()
         self._last_request_time = 0
         self._requests_in_minute = 0
         self._minute_window_start = time.time()
+        self._concurrent_requests = 0
+        self._max_concurrent_requests = 1  # Limit to 1 concurrent request
 
         if not self.api_key:
             logger.warning("⚠️ LLM API key not configured - using mock responses")
@@ -88,9 +90,9 @@ class LLMClient:
                 self._success_count += 1
                 self._failure_count = max(0, self._failure_count - 1)
 
-                # If we have consistent success, reduce delay (but not below 1s)
-                if self._success_count >= 3 and self._current_delay > 1:
-                    self._current_delay = max(1, self._current_delay // 2)
+                # If we have consistent success, reduce delay (but not below 0.5s)
+                if self._success_count >= 3 and self._current_delay > 0.5:
+                    self._current_delay = max(0.5, self._current_delay * 0.75)
                     self._success_count = 0
             else:
                 self._failure_count += 1
@@ -98,7 +100,7 @@ class LLMClient:
 
                 # If we have consistent failures, increase delay (but not above max)
                 if self._failure_count >= 2:
-                    self._current_delay = min(self._max_delay, self._current_delay * 2)
+                    self._current_delay = min(self._max_delay, self._current_delay * 1.5)
                     self._failure_count = 0
 
             # Enforce maximum of 5 requests per minute (more conservative)
@@ -201,6 +203,8 @@ class LLMClient:
             if response.status_code == 429:
                 logger.error("LLM API rate limit exceeded (429)")
                 retry_after = int(response.headers.get('Retry-After', 60))
+                # Increase retry_after by 0.5s to be more conservative
+                retry_after = max(0.5, retry_after + 0.5)
                 logger.warning(f"Waiting {retry_after}s before retry")
                 time.sleep(retry_after)
                 self._adjust_rate_limiting(False)  # Record failure
