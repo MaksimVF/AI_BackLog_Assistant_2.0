@@ -27,10 +27,10 @@ class GraphState(BaseModel):
     """State for the Level 3 graph processing"""
     input_text: str
     task_type: str = "general"
-    risk_assessment: Optional[Dict[str, Any]] = None
-    resource_analysis: Optional[Dict[str, Any]] = None
-    impact_evaluation: Optional[Dict[str, Any]] = None
-    confidence_urgency: Optional[Dict[str, Any]] = None
+    risk_result: Optional[Dict[str, Any]] = None
+    resource_result: Optional[Dict[str, Any]] = None
+    impact_result: Optional[Dict[str, Any]] = None
+    confidence_result: Optional[Dict[str, Any]] = None
     prioritization: Optional[Dict[str, Any]] = None
     messages: List[Any] = []
 
@@ -49,51 +49,51 @@ class Level3GraphAgent:
         graph = StateGraph(GraphState)
 
         # Add nodes for each processing step
-        graph.add_node("risk_assessment", self._run_risk_assessment)
-        graph.add_node("resource_analysis", self._run_resource_analysis)
-        graph.add_node("impact_evaluation", self._run_impact_evaluation)
-        graph.add_node("confidence_urgency", self._run_confidence_urgency)
+        graph.add_node("assess_risk", self._run_risk_assessment)
+        graph.add_node("analyze_resources", self._run_resource_analysis)
+        graph.add_node("evaluate_impact", self._run_impact_evaluation)
+        graph.add_node("analyze_confidence", self._run_confidence_urgency)
         graph.add_node("task_prioritization", self._run_task_prioritization)
 
         # Define the execution flow without cycles
-        graph.set_entry_point("risk_assessment")
-        graph.add_edge("risk_assessment", "resource_analysis")
-        graph.add_edge("resource_analysis", "impact_evaluation")
-        graph.add_edge("impact_evaluation", "confidence_urgency")
-        graph.add_edge("confidence_urgency", "task_prioritization")
+        graph.set_entry_point("assess_risk")
+        graph.add_edge("assess_risk", "analyze_resources")
+        graph.add_edge("analyze_resources", "evaluate_impact")
+        graph.add_edge("evaluate_impact", "analyze_confidence")
+        graph.add_edge("analyze_confidence", "task_prioritization")
         graph.set_finish_point("task_prioritization")  # Set final node
 
         return graph
 
     def _run_risk_assessment(self, state: GraphState) -> GraphState:
         """Run risk assessment"""
-        if state.risk_assessment is None:
+        if state.risk_result is None:
             result = risk_assessment_agent.evaluate_risk(state.input_text)
-            state.risk_assessment = result
+            state.risk_result = result
             state.messages.append(AIMessage(content=f"Risk assessment: {result['risk_score']}"))
         return state
 
     def _run_resource_analysis(self, state: GraphState) -> GraphState:
         """Run resource analysis"""
-        if state.resource_analysis is None:
+        if state.resource_result is None:
             result = resource_availability_agent.assess_resources(state.input_text)
-            state.resource_analysis = result
+            state.resource_result = result
             state.messages.append(AIMessage(content="Resource analysis completed"))
         return state
 
     def _run_impact_evaluation(self, state: GraphState) -> GraphState:
         """Run impact evaluation"""
-        if state.impact_evaluation is None:
+        if state.impact_result is None:
             result = impact_potential_agent.assess_impact(state.input_text)
-            state.impact_evaluation = result
+            state.impact_result = result
             state.messages.append(AIMessage(content=f"Impact score: {result['impact_score']}"))
         return state
 
     def _run_confidence_urgency(self, state: GraphState) -> GraphState:
         """Run confidence and urgency analysis"""
-        if state.confidence_urgency is None:
+        if state.confidence_result is None:
             result = confidence_urgency_agent.score_task(state.input_text)
-            state.confidence_urgency = result
+            state.confidence_result = result
             state.messages.append(AIMessage(content=f"Confidence: {result['confidence']}, Urgency: {result['urgency']}"))
         return state
 
