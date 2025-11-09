@@ -169,17 +169,17 @@ class LLMClient:
         try:
             # Check if the API URL already contains the full path or just the base
             api_endpoint = self.api_url
+            # Only append /chat/completions if it's not already there
             if not api_endpoint.endswith('/chat/completions'):
-                # If it's just the base URL, append the chat/completions path
+                # If it ends with /v1, append /chat/completions
                 if api_endpoint.endswith('/v1'):
                     api_endpoint = api_endpoint + '/chat/completions'
-                elif not api_endpoint.endswith('/v1'):
-                    # Handle case where base URL doesn't end with /v1
-                    if '/v1' in api_endpoint:
-                        api_endpoint = api_endpoint.rstrip('/') + '/chat/completions'
-                    else:
-                        # Last resort - append the full path
-                        api_endpoint = api_endpoint.rstrip('/') + '/v1/chat/completions'
+                # If it contains /v1 but doesn't end with it, append the full path
+                elif '/v1' in api_endpoint:
+                    api_endpoint = api_endpoint.rstrip('/') + '/chat/completions'
+                # If it doesn't contain /v1 at all, append the full path
+                else:
+                    api_endpoint = api_endpoint.rstrip('/') + '/v1/chat/completions'
 
             response = requests.post(
                 api_endpoint,
