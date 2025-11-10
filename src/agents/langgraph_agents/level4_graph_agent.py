@@ -27,7 +27,7 @@ class GraphState(BaseModel):
     aggregation_result: Optional[Dict[str, Any]] = None
     visualization_result: Optional[Dict[str, Any]] = None
     summary_result: Optional[Dict[str, Any]] = None
-    enhanced_result: Optional[Dict[str, Any]] = None
+    enhanced_summary: Optional[Dict[str, Any]] = None
     messages: List[Any] = []
 
 class Level4GraphAgent:
@@ -103,7 +103,7 @@ class Level4GraphAgent:
             result = self.summary_agent.generate_enhanced_recommendation(
                 state.aggregation_result, project_context
             )
-            state.enhanced_result = result
+            state.enhanced_summary = result
             state.messages.append(AIMessage(content="Enhanced summary generated"))
 
         return state
