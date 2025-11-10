@@ -124,10 +124,10 @@ class Level2GraphAgent:
         compiled_graph = self.graph.compile()
         result = compiled_graph.invoke(initial_state)
 
-        # The result is a dictionary, extract the values
+        # The result is a dictionary, extract the values using the correct keys
         return {
             "input_text": result.get("input_text", initial_state.input_text),
-            "advanced_classification": result.get("advanced_classification"),
+            "advanced_classification": result.get("classification_result"),
             "reflection": result.get("reflection_result"),
             "semantic_blocks": result.get("semantic_blocks"),
             "context": result.get("context_analysis"),
