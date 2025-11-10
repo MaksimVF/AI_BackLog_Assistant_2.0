@@ -146,7 +146,7 @@ class Level1GraphAgent:
             "modality_detection": result.get("modality_result", {}),
             "input_processing": result.get("input_result", {}),
             "preprocessing": result.get("preprocessing_result", {}),
-            "messages": [msg.dict() for msg in result.get("messages", [])]
+            "messages": [msg.model_dump() for msg in result.get("messages", [])]
         }
 
 # Create a global instance for easy access
