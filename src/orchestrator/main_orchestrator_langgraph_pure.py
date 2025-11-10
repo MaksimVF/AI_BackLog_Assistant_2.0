@@ -11,9 +11,9 @@ import logging
 from typing import Dict, Any
 
 # Import LangGraph orchestrators
-from src.agents.langgraph_agents.level1_graph_orchestrator import level1_graph_orchestrator
-from src.agents.langgraph_agents.level2_graph_orchestrator import level2_graph_orchestrator
-from src.agents.langgraph_agents.level3_graph_orchestrator import level3_graph_orchestrator
+from src.agents.langgraph_agents.level1_graph_orchestrator_pure import level1_graph_orchestrator_pure
+from src.agents.langgraph_agents.level2_graph_orchestrator_pure import level2_graph_orchestrator_pure
+from src.agents.langgraph_agents.level3_graph_orchestrator_pure import level3_graph_orchestrator_pure
 from src.agents.langgraph_agents.level4_graph_orchestrator_pure import level4_graph_orchestrator_pure
 
 # Configure logging
@@ -40,20 +40,20 @@ class MainOrchestratorLangGraphPure:
         """
         logger.info("Processing workflow with LangGraph (pure Level 4)")
 
-        # Process Level 1 with LangGraph
-        level1_result = level1_graph_orchestrator.process_input(input_data, metadata)
+        # Process Level 1 with pure LangGraph
+        level1_result = level1_graph_orchestrator_pure.process_input(input_data, metadata)
         logger.debug(f"Level 1 completed - Modality: {level1_result.get('modality', 'unknown')}")
 
-        # Process Level 2 with LangGraph
-        level2_result = level2_graph_orchestrator.analyze_text(level1_result.get("content", ""))
+        # Process Level 2 with pure LangGraph
+        level2_result = level2_graph_orchestrator_pure.analyze_text(level1_result.get("content", ""))
         logger.debug(f"Level 2 completed - Task Type: {level2_result.get('advanced_classification', {}).get('task_type', 'unknown')}")
 
-        # Process Level 3 with LangGraph
+        # Process Level 3 with pure LangGraph
         task_type = level2_result.get("advanced_classification", {}).get("task_type", "general")
-        level3_result = level3_graph_orchestrator.analyze_task(level1_result.get("content", ""), task_type)
+        level3_result = level3_graph_orchestrator_pure.analyze_task(level1_result.get("content", ""), task_type)
         logger.debug(f"Level 3 completed - Priority: {level3_result.get('prioritization', {}).get('priority_level', 'N/A')}")
 
-        # Process Level 4 with pure LangGraph (no old agents)
+        # Process Level 4 with pure LangGraph
         level4_result = level4_graph_orchestrator_pure.process_recommendations(level3_result)
         logger.debug(f"Level 4 completed - Recommendation: {level4_result.get('recommendation', 'N/A')}")
 
