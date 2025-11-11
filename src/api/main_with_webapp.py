@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException, Body, Request, Header
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
-from src.orchestrator.main_orchestrator_langgraph_full import MainOrchestratorLangGraphFull as MainOrchestrator
+from src.orchestrator.main_orchestrator_langgraph_pure import main_orchestrator_langgraph_pure as main_orchestrator
 from src.bot.telegram_bot import main_background as telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
@@ -33,10 +33,8 @@ async def lifespan(app: FastAPI):
         logger.error(f"External service check failed: {e}")
 
     # Start background tasks
-    orchestrator = MainOrchestrator()
-
-    # Run the async process_workflow method
-    asyncio.create_task(orchestrator.process_workflow("Initial workflow", {}))
+    # Run the async process_workflow method using the imported main_orchestrator
+    asyncio.create_task(main_orchestrator.process_workflow("Initial workflow", {}))
 
     # Start the telegram bot (which is async)
     asyncio.create_task(telegram_bot())
@@ -120,8 +118,8 @@ async def create_task(request: TaskRequest):
         task_id = f"task_{hash(request.input_data) % 1000000}"
 
         # Extract classification and prioritization results
-        classification = result["level2"]["advanced_classification"]
-        prioritization = result["level3"]["prioritization"]
+        classification = result["level2"]["classification"]
+        prioritization = result["level3"]["confidence_urgency"]
 
         # Prepare task data for database
         task_data = {
@@ -129,18 +127,18 @@ async def create_task(request: TaskRequest):
             "input_data": request.input_data,
             "task_metadata": request.metadata or {},
             "status": "completed",
-            "classification": classification["task_type"],
-            "sub_category": classification["sub_category"],
-            "domain": classification["metadata"]["domain"],
-            "sentiment": classification["metadata"]["sentiment"],
-            "confidence": classification["confidence"],
-            "risk_score": prioritization["risk_score"],
-            "impact_score": prioritization["impact_score"],
-            "confidence_score": prioritization["confidence_score"],
-            "urgency_score": prioritization["urgency_score"],
-            "priority_score": prioritization["priority_score"],
-            "priority_level": prioritization["priority_level"],
-            "priority_recommendation": prioritization["recommendation"],
+            "classification": classification.get("task_type", "unknown"),
+            "sub_category": classification.get("sub_category", "unknown"),
+            "domain": classification.get("domain", "unknown"),
+            "sentiment": classification.get("sentiment", "neutral"),
+            "confidence": classification.get("confidence", 0.5),
+            "risk_score": prioritization.get("risk_score", 0),
+            "impact_score": prioritization.get("impact_score", 0),
+            "confidence_score": prioritization.get("confidence", 0.5),
+            "urgency_score": prioritization.get("urgency", 0),
+            "priority_score": 0,  # Not available in new structure
+            "priority_level": "medium",  # Default value
+            "priority_recommendation": "Proceed with standard handling",
             "recommendation": result["level4"].get("recommendation", "No recommendation available")
         }
 
