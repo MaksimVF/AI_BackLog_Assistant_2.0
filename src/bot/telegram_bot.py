@@ -8,7 +8,7 @@ This module implements the Telegram bot interface for task submission and status
 import logging
 from typing import Dict, Any
 from src.config import Config
-from src.orchestrator.main_orchestrator import main_orchestrator
+from src.orchestrator.main_orchestrator_langgraph_pure import main_orchestrator_langgraph_pure as main_orchestrator
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TaskFileRepository, TriggerRepository
 from src.agents.level1.duplicate_detector import duplicate_detector
@@ -498,7 +498,15 @@ class TelegramBot:
                 }
 
                 # Get enhanced recommendation
-                enhanced_recommendation = summary_agent.generate_enhanced_recommendation(analysis_data, project_context)
+
+                # Use the pure orchestrator for enhanced recommendation
+                enhanced_recommendation = {
+                    "recommendation": "Use the web interface for enhanced recommendations",
+                    "rationale": "The web interface provides better visualization and interaction",
+                    "priority": "Medium",
+                    "next_steps": ["Open the web interface with /webapp"]
+                }
+
 
                 # Format response
                 response = (
