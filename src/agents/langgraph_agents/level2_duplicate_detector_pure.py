@@ -168,11 +168,13 @@ class Level2DuplicateDetectorPure:
                     recent_tasks = await TaskRepository.get_recent_tasks_by_user(
                         db, user_id, time_threshold
                     )
+                    logger.info(f"Found {len(recent_tasks)} recent tasks for user {user_id}")
                 except Exception as e:
                     logger.error(f"Error getting recent tasks: {e}")
                     recent_tasks = []
 
                 if not recent_tasks:
+                    logger.info(f"No recent tasks found for user {user_id}")
                     return result
 
                 # Check for exact duplicates and calculate similarities
