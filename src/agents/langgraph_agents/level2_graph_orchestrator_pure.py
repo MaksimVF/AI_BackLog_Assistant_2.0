@@ -24,7 +24,7 @@ class Level2GraphOrchestratorPure:
 
     def __init__(self):
         """Initialize the Level 2 Graph Orchestrator"""
-        logger.info("Initializing Level 2 Graph Orchestrator (Pure LangGraph)")
+        logger.debug("Initializing Level 2 Graph Orchestrator (Pure LangGraph)")
 
     async def analyze_text(self, input_text: str, user_id: str = "default") -> Dict[str, Any]:
         """
