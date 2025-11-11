@@ -9,6 +9,7 @@ This module implements duplicate detection using pure LangGraph without dependin
 """
 
 import logging
+import re
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from src.db.connection import AsyncSessionLocal
