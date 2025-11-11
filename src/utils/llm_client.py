@@ -146,27 +146,30 @@ class LLMClient:
             "temperature": 0.7
         }
 
-        # Apply dynamic rate limiting
+        # Apply strict rate limiting - 1 request every 2 seconds
         with self._rate_limit_lock:
             now = time.time()
             time_since_last_request = now - self._last_request_time
 
-            # Calculate actual delay needed
-            delay_needed = max(0, self._current_delay - time_since_last_request)
+            # Strict 2-second delay between requests
+            min_delay = 2.0  # 2 seconds minimum delay
+            delay_needed = max(0, min_delay - time_since_last_request)
             if delay_needed > 0:
-                logger.debug(f"Rate limiting: waiting {delay_needed:.2f}s")
+                logger.debug(f"Rate limiting: waiting {delay_needed:.2f}s to enforce 2-second delay")
                 time.sleep(delay_needed)
-
-            # Check if we're exceeding 5 requests/minute
-            if self._requests_in_minute >= 5 and (now - self._minute_window_start) < 60:
-                wait_time = 60 - (now - self._minute_window_start)
-                logger.warning(f"Rate limit (5/min) exceeded. Waiting {wait_time:.1f}s")
-                time.sleep(wait_time)
-                self._requests_in_minute = 1
-                self._minute_window_start = time.time()
 
             # Update last request time
             self._last_request_time = time.time()
+
+            # Enforce maximum of 1 request at a time
+            if self._concurrent_requests >= self._max_concurrent_requests:
+                logger.warning("Concurrent request limit reached - waiting for slot")
+                # Wait until a slot is available
+                while self._concurrent_requests >= self._max_concurrent_requests:
+                    time.sleep(0.1)  # Check every 100ms
+
+            # Mark this request as active
+            self._concurrent_requests += 1
 
         try:
             # Check if the API URL already contains the full path or just the base
@@ -245,20 +248,28 @@ class LLMClient:
                         self._adjust_rate_limiting(False)  # Record failure
                         return {"response": "", "error": "Empty LLM response"}
                     self._adjust_rate_limiting(True)  # Record success
+                    with self._rate_limit_lock:
+                        self._concurrent_requests -= 1
                     return {"response": content}
                 else:
                     logger.warning(f"Unexpected LLM API response format: {result}")
                     self._adjust_rate_limiting(False)  # Record failure
+                    with self._rate_limit_lock:
+                        self._concurrent_requests -= 1
                     return {"response": "", "error": "Unexpected response format"}
             except ValueError as e:
                 logger.warning(f"LLM response is not valid JSON: {e}")
                 logger.warning(f"Raw response: {response.text[:500]}...")  # Log first 500 chars to avoid huge logs
                 self._adjust_rate_limiting(False)  # Record failure
+                with self._rate_limit_lock:
+                    self._concurrent_requests -= 1
                 return {"response": "", "error": f"Invalid JSON response: {e}"}
 
         except requests.exceptions.RequestException as e:
             logger.error(f"LLM API request failed: {e}")
             self._adjust_rate_limiting(False)  # Record failure
+            with self._rate_limit_lock:
+                self._concurrent_requests -= 1
             return {"response": "", "error": str(e)}
 
     def generate_text(self, prompt: str, max_tokens: int = 500) -> str:
