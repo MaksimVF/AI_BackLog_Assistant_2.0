@@ -45,12 +45,14 @@ class MainOrchestratorLangGraphPure:
 
         # Process Level 2 with LangGraph (now with duplicate detection)
         user_id = metadata.get("user_id", "default") if metadata else "default"
-        level2_result = await level2_graph_orchestrator.analyze_text(level1_result.get("content", ""), user_id)
+        content = level1_result.get("content", "")
+        logger.info(f"Processing Level 2 with content: '{content}'")
+        level2_result = await level2_graph_orchestrator.analyze_text(content, user_id)
         logger.debug(f"Level 2 completed - Task Type: {level2_result.get('advanced_classification', {}).get('task_type', 'unknown')}")
 
         # Process Level 3 with LangGraph
         task_type = level2_result.get("advanced_classification", {}).get("task_type", "general")
-        level3_result = level3_graph_orchestrator.analyze_task(level1_result.get("content", ""), task_type)
+        level3_result = level3_graph_orchestrator.analyze_task(content, task_type)
         logger.debug(f"Level 3 completed - Priority: {level3_result.get('prioritization', {}).get('priority_level', 'N/A')}")
 
         # Process Level 4 with pure LangGraph (no old agents)
