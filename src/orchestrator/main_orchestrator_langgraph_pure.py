@@ -47,10 +47,10 @@ class MainOrchestratorLangGraphPure:
 
         # Process Level 2 with LangGraph (now with duplicate detection)
         user_id = metadata.get("user_id", "default") if metadata else "default"
-        content = level1_result.get("input_result", {}).get("content", "")
+        content = level1_result.get("input", {}).get("content", "")
         logger.info(f"Processing Level 2 with content: '{content}'")
         logger.info(f"Level 1 result keys: {level1_result.keys()}")
-        logger.info(f"Level 1 input_result: {level1_result.get('input_result')}")
+        logger.info(f"Level 1 input: {level1_result.get('input')}")
         level2_result = await level2_graph_orchestrator.analyze_text(content, user_id)
         logger.debug(f"Level 2 completed - Task Type: {level2_result.get('advanced_classification', {}).get('task_type', 'unknown')}")
 
