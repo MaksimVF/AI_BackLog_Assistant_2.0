@@ -14,6 +14,7 @@ from typing import Dict, Any
 
 # Import the pure LangGraph implementation
 from src.agents.langgraph_agents.level2_graph_agent_pure import level2_graph_agent_pure
+from src.agents.langgraph_agents.level2_duplicate_detector_pure import level2_duplicate_detector_pure
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -25,12 +26,13 @@ class Level2GraphOrchestratorPure:
         """Initialize the Level 2 Graph Orchestrator"""
         logger.info("Initializing Level 2 Graph Orchestrator (Pure LangGraph)")
 
-    def analyze_text(self, input_text: str) -> Dict[str, Any]:
+    async def analyze_text(self, input_text: str, user_id: str = "default") -> Dict[str, Any]:
         """
         Analyze text using pure LangGraph
 
         Args:
             input_text: Text to analyze
+            user_id: User ID for duplicate detection
 
         Returns:
             Analysis results
@@ -39,6 +41,10 @@ class Level2GraphOrchestratorPure:
 
         # Use the pure LangGraph implementation
         result = level2_graph_agent_pure.analyze_text(input_text)
+
+        # Add duplicate detection
+        duplicate_result = await level2_duplicate_detector_pure.check_duplicate(input_text, user_id)
+        result["duplicate_detection"] = duplicate_result
 
         # Log the result
         logger.info("Level 2 analysis completed with pure LangGraph")

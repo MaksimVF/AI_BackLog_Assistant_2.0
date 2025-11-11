@@ -11,7 +11,7 @@ from src.config import Config
 from src.orchestrator.main_orchestrator_langgraph_pure import main_orchestrator_langgraph_pure as main_orchestrator
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TaskFileRepository, TriggerRepository
-from src.agents.level1.duplicate_detector import duplicate_detector
+# Duplicate detection is now handled by Level 2 pure agents
 from src.agents.level1.task_status_manager import task_status_manager
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
@@ -677,22 +677,8 @@ class TelegramBot:
         try:
             logger.info(f"Processing Telegram message from user {user_id}: {message_text[:50]}...")
 
-            # Check for duplicate messages
-            duplicate_check = await duplicate_detector.check_duplicate(message_text, user_id)
-            logger.info(f"Duplicate check result: {duplicate_check}")
-
-            # If it's a duplicate, return early without creating a new task
-            if duplicate_check.get("is_duplicate", False):
-                return {
-                    "status": "completed",
-                    "task_id": duplicate_check.get("original_task_id", "unknown"),
-                    "result": {
-                        "is_duplicate": True,
-                        "duplicate_analysis": duplicate_check.get("analysis", "Duplicate detected"),
-                        "original_task_id": duplicate_check.get("original_task_id", "unknown"),
-                        "recommendation": "This is a duplicate task"
-                    }
-                }
+            # Duplicate detection is now handled by Level 2 pure agents
+            # We'll get the duplicate result from the workflow processing
 
             # Create metadata for the task
             metadata = {
@@ -736,9 +722,10 @@ class TelegramBot:
                 await TaskRepository.create_task(db, task_data)
                 logger.info(f"Successfully stored task {task_id} in database")
 
-            # Add duplicate information to result
-            result["is_duplicate"] = duplicate_check["is_duplicate"]
-            result["duplicate_analysis"] = duplicate_check["analysis"]
+            # Get duplicate detection result from Level 2
+            duplicate_result = result.get("level2", {}).get("duplicate_detection", {})
+            result["is_duplicate"] = duplicate_result.get("is_duplicate", False)
+            result["duplicate_analysis"] = duplicate_result.get("analysis", "No duplicates found")
 
             return {
                 "task_id": task_id,
