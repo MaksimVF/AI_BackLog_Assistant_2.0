@@ -1,35 +1,34 @@
 
 
 """
-Main Orchestrator with Pure LangGraph for Level 4
+Main Orchestrator with Pure LangGraph for All Levels
 
-This module provides a main orchestrator that uses LangGraph for all levels,
-with Level 4 using a pure LangGraph implementation without old agents.
+This module provides a main orchestrator that uses pure LangGraph implementations
+for all levels without depending on old agents.
 """
 
 import logging
 from typing import Dict, Any
 
-# Import LangGraph orchestrators
-from src.agents.langgraph_agents.level1_graph_orchestrator import level1_graph_orchestrator
-from src.agents.langgraph_agents.level2_graph_orchestrator import level2_graph_orchestrator
-from src.agents.langgraph_agents.level3_graph_orchestrator import level3_graph_orchestrator
+# Import LangGraph orchestrators (pure versions for all levels)
+from src.agents.langgraph_agents.level1_graph_orchestrator_pure import level1_graph_orchestrator_pure as level1_graph_orchestrator
+from src.agents.langgraph_agents.level2_graph_orchestrator_pure import level2_graph_orchestrator_pure as level2_graph_orchestrator
+from src.agents.langgraph_agents.level3_graph_orchestrator_pure import level3_graph_orchestrator_pure as level3_graph_orchestrator
 from src.agents.langgraph_agents.level4_graph_orchestrator_pure import level4_graph_orchestrator_pure
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 class MainOrchestratorLangGraphPure:
-    """Main orchestrator that uses LangGraph for all levels, with pure implementation for Level 4"""
+    """Main orchestrator that uses pure LangGraph implementations for all levels"""
 
     def __init__(self):
         """Initialize the main orchestrator"""
-        logger.info("Initializing Main Orchestrator with LangGraph (pure Level 4)")
+        logger.info("Initializing Main Orchestrator with pure LangGraph for all levels")
 
     async def process_workflow(self, input_data: str, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        Process the complete workflow using LangGraph for all levels,
-        with pure implementation for Level 4
+        Process the complete workflow using pure LangGraph implementations for all levels
 
         Args:
             input_data: Raw input data
@@ -38,7 +37,7 @@ class MainOrchestratorLangGraphPure:
         Returns:
             Processed results from all levels
         """
-        logger.info("Processing workflow with LangGraph (pure Level 4)")
+        logger.info("Processing workflow with pure LangGraph for all levels")
 
         # Process Level 1 with LangGraph
         level1_result = level1_graph_orchestrator.process_input(input_data, metadata)
@@ -65,7 +64,7 @@ class MainOrchestratorLangGraphPure:
             "level4": level4_result
         }
 
-        logger.info("Workflow processing completed with LangGraph (pure Level 4)")
+        logger.info("Workflow processing completed with pure LangGraph for all levels")
 
         return result
 
