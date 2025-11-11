@@ -2,8 +2,8 @@
 from fastapi import FastAPI, HTTPException, Body
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
-# Use the LangGraph orchestrator instead of the old one
-from src.orchestrator.main_orchestrator_langgraph_full import main_orchestrator_langgraph_full as main_orchestrator
+# Use the pure LangGraph orchestrator instead of the old one
+from src.orchestrator.main_orchestrator_langgraph_pure import main_orchestrator_langgraph_pure as main_orchestrator
 from src.bot.telegram_bot import telegram_bot
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TriggerRepository
