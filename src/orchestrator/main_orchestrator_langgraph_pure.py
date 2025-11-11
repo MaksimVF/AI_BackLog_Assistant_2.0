@@ -40,8 +40,10 @@ class MainOrchestratorLangGraphPure:
         logger.info("Processing workflow with pure LangGraph for all levels")
 
         # Process Level 1 with LangGraph
+        logger.info(f"Processing Level 1 with input: '{input_data}'")
         level1_result = level1_graph_orchestrator.process_input(input_data, metadata)
         logger.debug(f"Level 1 completed - Modality: {level1_result.get('modality', 'unknown')}")
+        logger.debug(f"Level 1 result: {level1_result}")
 
         # Process Level 2 with LangGraph (now with duplicate detection)
         user_id = metadata.get("user_id", "default") if metadata else "default"
