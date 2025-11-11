@@ -180,7 +180,7 @@ class Level1GraphAgentPure:
         result = compiled_graph.invoke(initial_state)
 
         # The result is a dictionary, extract the values
-        logger.info(f"Level 1 result: {result}")
+        logger.debug(f"Level 1 result: {result}")
         return {
             "modality": result.get("modality_result"),
             "input": result.get("input_result"),
