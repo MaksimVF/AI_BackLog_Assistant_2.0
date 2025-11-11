@@ -37,7 +37,7 @@ class Level2GraphOrchestratorPure:
         Returns:
             Analysis results
         """
-        logger.info("Analyzing text with pure LangGraph Level 2")
+        logger.debug("Analyzing text with pure LangGraph Level 2")
 
         # Use the pure LangGraph implementation
         result = level2_graph_agent_pure.analyze_text(input_text)
@@ -47,7 +47,7 @@ class Level2GraphOrchestratorPure:
         result["duplicate_detection"] = duplicate_result
 
         # Log the result
-        logger.info("Level 2 analysis completed with pure LangGraph")
+        logger.debug("Level 2 analysis completed with pure LangGraph")
 
         return result
 
