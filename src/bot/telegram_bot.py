@@ -685,10 +685,7 @@ class TelegramBot:
                 "source": "telegram",
                 "user_id": user_id,
                 "username": "telegram_user",
-                "chat_id": "telegram_chat",
-                "is_duplicate": duplicate_check["is_duplicate"],
-                "duplicate_count": duplicate_check["duplicate_count"],
-                "duplicate_analysis": duplicate_check["analysis"]
+                "chat_id": "telegram_chat"
             }
 
             # Process through the workflow
