@@ -181,9 +181,8 @@ class Level2DuplicateDetectorPure:
                 exact_duplicates = []
                 similarity_scores = []
 
-                logger.debug(f"Checking for duplicates among {len(recent_tasks)} tasks with message: '{message_text}'")
+                logger.debug(f"Checking for duplicates among {len(recent_tasks)} tasks")
                 for task in recent_tasks:
-                    logger.debug(f"Comparing with task {task.task_id}: '{task.input_data}'")
                     # Check for exact match first
                     if task.input_data == message_text:
                         logger.debug(f"Found exact duplicate: task_{task.task_id}")
