@@ -723,6 +723,7 @@ class TelegramBot:
             duplicate_result = result.get("level2", {}).get("duplicate_detection", {})
             result["is_duplicate"] = duplicate_result.get("is_duplicate", False)
             result["duplicate_analysis"] = duplicate_result.get("analysis", "No duplicates found")
+            logger.info(f"Duplicate detection result: {duplicate_result}")
 
             return {
                 "task_id": task_id,
