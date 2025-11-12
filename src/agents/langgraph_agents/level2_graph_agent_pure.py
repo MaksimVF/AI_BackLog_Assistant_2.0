@@ -82,8 +82,7 @@ class Level2GraphAgentPure:
         return state
 
     def _classify_task(self, input_text: str) -> Dict[str, Any]:
-        """Classify the task type"""
-        # Implement classification logic directly
+        """Classify the task type using rule-based approach"""
         # Simple keyword-based classification
         text_lower = input_text.lower()
 
@@ -115,13 +114,58 @@ class Level2GraphAgentPure:
             "sub_category": None,
             "metadata": {
                 "input_length": len(input_text),
-                "keyword_detected": detected_type != "general"
+                "keyword_detected": detected_type != "general",
+                "method": "rule_based"
             }
         }
 
+    def _classify_task_with_llm(self, input_text: str) -> Dict[str, Any]:
+        """Classify the task type using LLM for more nuanced understanding"""
+        from src.utils.llm_client import llm_client
+
+        prompt = f"""
+        Classify the following task into one of these categories: bug, idea, feedback, question, request.
+        Provide your response as JSON with fields: task_type, confidence, rationale.
+
+        Task: {input_text}
+        """
+
+        try:
+            llm_response = llm_client.generate_json(prompt)
+
+            # Validate the response
+            if "error" in llm_response:
+                logger.warning(f"LLM classification error: {llm_response['error']}")
+                # Fall back to rule-based approach
+                return self._classify_task(input_text)
+
+            return {
+                "task_type": llm_response.get("task_type", "general"),
+                "confidence": llm_response.get("confidence", 0.75),
+                "sub_category": None,
+                "metadata": {
+                    "input_length": len(input_text),
+                    "method": "llm_based",
+                    "rationale": llm_response.get("rationale", "LLM analysis")
+                }
+            }
+        except Exception as e:
+            logger.warning(f"LLM classification failed: {e}")
+            # Fall back to rule-based approach
+            return self._classify_task(input_text)
+
+    def _run_classification(self, state: GraphState) -> GraphState:
+        """Run task classification with LLM enhancement and fallback"""
+        if state.classification_result is None:
+            # Try LLM-based classification first, fall back to rule-based if needed
+            result = self._classify_task_with_llm(state.input_text)
+            state.classification_result = result
+            state.messages.append(AIMessage(content="Task classification completed"))
+
+        return state
+
     def _contextualize_task(self, input_text: str, classification_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract context from the task"""
-        # Implement contextualization logic directly
+        """Extract context from the task using rule-based approach"""
         task_type = classification_result.get("task_type", "general")
 
         # Simple entity extraction
@@ -155,13 +199,61 @@ class Level2GraphAgentPure:
             "entities": entities,
             "metadata": {
                 "task_type": task_type,
-                "entity_count": len(entities)
+                "entity_count": len(entities),
+                "method": "rule_based"
             }
         }
 
+    def _contextualize_task_with_llm(self, input_text: str, classification_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract context from the task using LLM for advanced NLP"""
+        from src.utils.llm_client import llm_client
+
+        task_type = classification_result.get("task_type", "general")
+
+        prompt = f"""
+        Analyze the following task and extract context information.
+        Identify entities, determine the domain, and provide any relevant context.
+        Provide your response as JSON with fields: domain, entities, rationale.
+
+        Task: {input_text}
+        Task Type: {task_type}
+        """
+
+        try:
+            llm_response = llm_client.generate_json(prompt)
+
+            # Validate the response
+            if "error" in llm_response:
+                logger.warning(f"LLM contextualization error: {llm_response['error']}")
+                # Fall back to rule-based approach
+                return self._contextualize_task(input_text, classification_result)
+
+            return {
+                "domain": llm_response.get("domain", "general"),
+                "entities": llm_response.get("entities", []),
+                "metadata": {
+                    "task_type": task_type,
+                    "method": "llm_based",
+                    "rationale": llm_response.get("rationale", "LLM analysis")
+                }
+            }
+        except Exception as e:
+            logger.warning(f"LLM contextualization failed: {e}")
+            # Fall back to rule-based approach
+            return self._contextualize_task(input_text, classification_result)
+
+    def _run_contextualization(self, state: GraphState) -> GraphState:
+        """Run contextualization with LLM enhancement and fallback"""
+        if state.contextualization_result is None and state.classification_result:
+            # Try LLM-based contextualization first, fall back to rule-based if needed
+            result = self._contextualize_task_with_llm(state.input_text, state.classification_result)
+            state.contextualization_result = result
+            state.messages.append(AIMessage(content="Contextualization completed"))
+
+        return state
+
     def _reflect_on_task(self, input_text: str, classification_result: Dict[str, Any], contextualization_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Perform reflection analysis on the task"""
-        # Implement reflection logic directly
+        """Perform reflection analysis on the task using rule-based approach"""
         task_type = classification_result.get("task_type", "general")
         domain = contextualization_result.get("domain", "general")
 
@@ -191,9 +283,72 @@ class Level2GraphAgentPure:
             "recommendations": recommendations,
             "metadata": {
                 "task_type": task_type,
-                "domain": domain
+                "domain": domain,
+                "method": "rule_based"
             }
         }
+
+    def _reflect_on_task_with_llm(self, input_text: str, classification_result: Dict[str, Any], contextualization_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform reflection analysis using LLM for deeper insights"""
+        from src.utils.llm_client import llm_client
+
+        task_type = classification_result.get("task_type", "general")
+        domain = contextualization_result.get("domain", "general")
+        entities = contextualization_result.get("entities", [])
+
+        # Prepare context for LLM
+        context = f"""
+        Task: {input_text}
+        Task Type: {task_type}
+        Domain: {domain}
+        Entities: {entities}
+        """
+
+        prompt = f"""
+        Analyze the following task and provide deep insights and recommendations.
+        Consider the task type, domain, and any identified entities.
+        Provide your response as JSON with fields: insights, recommendations, rationale.
+
+        {context}
+        """
+
+        try:
+            llm_response = llm_client.generate_json(prompt)
+
+            # Validate the response
+            if "error" in llm_response:
+                logger.warning(f"LLM reflection error: {llm_response['error']}")
+                # Fall back to rule-based approach
+                return self._reflect_on_task(input_text, classification_result, contextualization_result)
+
+            return {
+                "insights": llm_response.get("insights", []),
+                "recommendations": llm_response.get("recommendations", []),
+                "metadata": {
+                    "task_type": task_type,
+                    "domain": domain,
+                    "method": "llm_based",
+                    "rationale": llm_response.get("rationale", "LLM analysis")
+                }
+            }
+        except Exception as e:
+            logger.warning(f"LLM reflection failed: {e}")
+            # Fall back to rule-based approach
+            return self._reflect_on_task(input_text, classification_result, contextualization_result)
+
+    def _run_reflection(self, state: GraphState) -> GraphState:
+        """Run reflection analysis with LLM enhancement and fallback"""
+        if state.reflection_result is None and state.contextualization_result:
+            # Try LLM-based reflection first, fall back to rule-based if needed
+            result = self._reflect_on_task_with_llm(
+                state.input_text,
+                state.classification_result,
+                state.contextualization_result
+            )
+            state.reflection_result = result
+            state.messages.append(AIMessage(content="Reflection analysis completed"))
+
+        return state
 
     def analyze_text(self, input_text: str) -> Dict[str, Any]:
         """
