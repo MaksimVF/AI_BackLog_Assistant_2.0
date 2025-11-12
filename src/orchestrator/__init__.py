@@ -5,14 +5,13 @@ Orchestrator Module
 This module coordinates the workflow between different agents and levels.
 """
 
-from .main_orchestrator import main_orchestrator
-from .main_orchestrator_langgraph_full import main_orchestrator_langgraph_full
+# Note: Only importing modules that actually exist
 from .main_orchestrator_langgraph_pure import main_orchestrator_langgraph_pure
 from .main_orchestrator_pure import main_orchestrator_pure
 
 # Global instances for easy access
-main_orchestrator = main_orchestrator
-main_orchestrator_langgraph = main_orchestrator_langgraph_full
+# Using main_orchestrator_pure as the default main_orchestrator
+main_orchestrator = main_orchestrator_pure
 main_orchestrator_langgraph_pure = main_orchestrator_langgraph_pure
 main_orchestrator_pure = main_orchestrator_pure
 
