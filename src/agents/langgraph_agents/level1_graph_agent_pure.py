@@ -52,10 +52,10 @@ class Level1GraphAgentPure:
         return graph
 
     def _run_modality_detection(self, state: GraphState) -> GraphState:
-        """Run modality detection"""
+        """Run modality detection with LLM enhancement and fallback"""
         if state.modality_result is None:
-            # Implement modality detection logic directly
-            result = self._detect_modality(state.input_data, state.metadata)
+            # Try LLM-based detection first, fall back to rule-based if needed
+            result = self._detect_modality_with_llm(state.input_data, state.metadata)
             state.modality_result = result
             state.messages.append(AIMessage(content="Modality detection completed"))
 
@@ -82,7 +82,7 @@ class Level1GraphAgentPure:
         return state
 
     def _detect_modality(self, input_data: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Detect the modality of input data"""
+        """Detect the modality of input data using rule-based approach"""
         # Implement modality detection logic directly
         modality = "text"  # Default to text
 
@@ -109,8 +109,56 @@ class Level1GraphAgentPure:
         return {
             "modality": modality,
             "confidence": 0.95,
-            "method": "filename_extension" if metadata and "filename" in metadata else "default"
+            "method": "rule_based",
+            "details": "filename_extension" if metadata and "filename" in metadata else "default"
         }
+
+    def _detect_modality_with_llm(self, input_data: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Detect the modality of input data using LLM for more accurate analysis"""
+        from src.utils.llm_client import llm_client
+
+        # Prepare context for LLM
+        context = f"""
+        Input data: {input_data[:500]}  # Limit to first 500 chars to avoid token limits
+        Metadata: {metadata}
+        """
+
+        prompt = f"""
+        Analyze the following input and determine its modality (text, audio, image, pdf, etc.).
+        Provide your response as JSON with fields: modality, confidence, rationale.
+
+        {context}
+        """
+
+        try:
+            llm_response = llm_client.generate_json(prompt)
+
+            # Validate the response
+            if "error" in llm_response:
+                logger.warning(f"LLM modality detection error: {llm_response['error']}")
+                # Fall back to rule-based approach
+                return self._detect_modality(input_data, metadata)
+
+            return {
+                "modality": llm_response.get("modality", "text"),
+                "confidence": llm_response.get("confidence", 0.85),
+                "method": "llm_based",
+                "rationale": llm_response.get("rationale", "LLM analysis")
+            }
+        except Exception as e:
+            logger.warning(f"LLM modality detection failed: {e}")
+            # Fall back to rule-based approach
+            return self._detect_modality(input_data, metadata)
+
+    def _run_modality_detection(self, state: GraphState) -> GraphState:
+        """Run modality detection with LLM enhancement and fallback"""
+        if state.modality_result is None:
+            # Try LLM-based detection first, fall back to rule-based if needed
+            result = self._detect_modality_with_llm(state.input_data, state.metadata)
+            state.modality_result = result
+            state.messages.append(AIMessage(content="Modality detection completed"))
+
+        return state
 
     def _process_input(self, input_data: str, modality_result: Dict[str, Any]) -> Dict[str, Any]:
         """Process input based on detected modality"""
