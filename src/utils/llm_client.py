@@ -228,10 +228,9 @@ class LLMClient:
                     # Try to repair the JSON if it's malformed
                     logger.warning("Attempting to repair malformed JSON response")
                     try:
-                        # json_repair.loads expects a string
+                        # json_repair.loads expects a string and returns a dict
                         if isinstance(response.text, str):
-                            repaired_json = json_repair.loads(response.text)
-                            result = json.loads(repaired_json)
+                            result = json_repair.loads(response.text)
                             logger.info("Successfully repaired JSON response")
                         else:
                             logger.error("Response text is not a string for repair")
@@ -322,10 +321,9 @@ class LLMClient:
         except json.JSONDecodeError as e:
             logger.warning(f"Invalid JSON, attempting repair: {e}")
             try:
-                # json_repair.loads expects a string
+                # json_repair.loads expects a string and returns a dict
                 if isinstance(json_str, str):
-                    repaired = json_repair.loads(json_str)
-                    return json.loads(repaired)
+                    return json_repair.loads(json_str)
                 else:
                     logger.error("JSON string is not a string for repair")
                     return {"error": "JSON string is not a string"}
