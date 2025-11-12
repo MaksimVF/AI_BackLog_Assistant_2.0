@@ -228,9 +228,14 @@ class LLMClient:
                     # Try to repair the JSON if it's malformed
                     logger.warning("Attempting to repair malformed JSON response")
                     try:
-                        repaired_json = json_repair.loads(response.text)
-                        result = json.loads(repaired_json)
-                        logger.info("Successfully repaired JSON response")
+                        # json_repair.loads expects a string and returns a dict
+                        if isinstance(response.text, str):
+                            result = json_repair.loads(response.text)
+                            logger.info("Successfully repaired JSON response")
+                        else:
+                            logger.error("Response text is not a string for repair")
+                            self._adjust_rate_limiting(False)  # Record failure
+                            return {"response": "", "error": "Response text is not a string"}
                     except Exception as repair_error:
                         logger.error(f"Failed to repair JSON: {repair_error}")
                         logger.warning(f"Raw response: {response.text[:500]}...")
@@ -316,8 +321,12 @@ class LLMClient:
         except json.JSONDecodeError as e:
             logger.warning(f"Invalid JSON, attempting repair: {e}")
             try:
-                repaired = json_repair.loads(json_str)
-                return json.loads(repaired)
+                # json_repair.loads expects a string and returns a dict
+                if isinstance(json_str, str):
+                    return json_repair.loads(json_str)
+                else:
+                    logger.error("JSON string is not a string for repair")
+                    return {"error": "JSON string is not a string"}
             except Exception as repair_error:
                 logger.error(f"Repair failed: {repair_error}")
                 return {"error": f"JSON repair failed: {repair_error}"}
