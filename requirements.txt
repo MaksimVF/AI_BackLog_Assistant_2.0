@@ -28,3 +28,4 @@ pandas==2.2.2  # Data manipulation library required for Plotly Express
 ratelimit==2.2.1  # Rate limiting for API calls
 
 
+json-repair==0.53.0
