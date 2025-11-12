@@ -12,7 +12,7 @@ from src.orchestrator.main_orchestrator_langgraph_pure import main_orchestrator_
 from src.db.connection import AsyncSessionLocal
 from src.db.repository import TaskRepository, TaskFileRepository, TriggerRepository
 # Duplicate detection is now handled by Level 2 pure agents
-from src.back.agents.level1.task_status_manager import task_status_manager
+from src.agents.level1.task_status_manager import task_status_manager
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
