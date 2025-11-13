@@ -75,15 +75,15 @@ class Config:
     MISTRAL_MODEL = os.getenv('MISTRAL_MODEL', 'mistral-medium-2508')
 
     # LLM Client configuration
-    LLM_MAX_CONCURRENT = int(os.getenv('LLM_MAX_CONCURRENT', '2'))
-    LLM_MIN_INTERVAL = float(os.getenv('LLM_MIN_INTERVAL', '2.5'))
-    LLM_MIN_INTERVAL_LIMIT = float(os.getenv('LLM_MIN_INTERVAL_LIMIT', '0.5'))
-    LLM_MAX_INTERVAL_LIMIT = float(os.getenv('LLM_MAX_INTERVAL_LIMIT', '30.0'))
+    LLM_MAX_CONCURRENT = int(os.getenv('LLM_MAX_CONCURRENT', '1'))  # Reduced from 2 to 1
+    LLM_MIN_INTERVAL = float(os.getenv('LLM_MIN_INTERVAL', '5.0'))  # Increased from 2.5 to 5.0
+    LLM_MIN_INTERVAL_LIMIT = float(os.getenv('LLM_MIN_INTERVAL_LIMIT', '1.0'))  # Increased from 0.5 to 1.0
+    LLM_MAX_INTERVAL_LIMIT = float(os.getenv('LLM_MAX_INTERVAL_LIMIT', '60.0'))  # Increased from 30.0 to 60.0
     LLM_MAX_RETRIES = int(os.getenv('LLM_MAX_RETRIES', '3'))
-    LLM_BACKOFF_MULT = float(os.getenv('LLM_BACKOFF_MULT', '2.0'))
-    LLM_BACKOFF_JITTER = float(os.getenv('LLM_BACKOFF_JITTER', '0.25'))
+    LLM_BACKOFF_MULT = float(os.getenv('LLM_BACKOFF_MULT', '1.5'))  # Reduced from 2.0 to 1.5
+    LLM_BACKOFF_JITTER = float(os.getenv('LLM_BACKOFF_JITTER', '0.2'))
     LLM_BACKOFF_MAX = float(os.getenv('LLM_BACKOFF_MAX', '60.0'))
-    LLM_MAX_RPM = int(os.getenv('LLM_MAX_RPM', '30'))
+    LLM_MAX_RPM = int(os.getenv('LLM_MAX_RPM', '15'))  # Reduced from 30 to 15
     LLM_TEMPERATURE = float(os.getenv('LLM_TEMPERATURE', '0.7'))
 
     # Logging
