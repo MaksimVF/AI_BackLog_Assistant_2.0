@@ -351,66 +351,66 @@ class LLMClient:
                 return {"response": "", "error": "Empty content in LLM choices"}
             return {"response": content}
 
-        # Если результат — словарь, а не выбор, вернуть JSON как строку, чтобы generate_json мог ее проанализировать
-        если isinstance(результат, словарь):
-            пытаться:
-                json_text = json.dumps(результат)
-                возврат {"ответ": json_text}
-            кроме Исключение:
-                возврат {"ответ": str(результат)}
+        # If result is a dict but not a choice, return JSON as string for generate_json to parse
+        if isinstance(result, dict):
+            try:
+                json_text = json.dumps(result)
+                return {"response": json_text}
+            except Exception:
+                return {"response": str(result)}
 
-        # Список или примитив -> вернуть текстовое представление
-        возврат {"ответ": str(результат)}
+        # List or primitive -> return textual representation
+        return {"response": str(result)}
 
-    # Публичные методы
+    # Public methods
     def generate_text(self, prompt: str, max_tokens: int = 500) -> str:
         """
-        Возвращает текстовый ответ (может быть строкой JSON, если LLM вернул JSON)
+        Returns text response (may be JSON string if LLM returned JSON)
         """
-        # При желании можно добавить строгую инструкцию JSON, если вы ожидаете JSON
-        # Но оставьте generate_text универсальным.
-        проанализировано = self._call_api(prompt, max_tokens)
-        return parsed.get("ответ", "")
+        # Optionally add strict JSON instruction if you expect JSON
+        # But keep generate_text universal.
+        parsed = self._call_api(prompt, max_tokens)
+        return parsed.get("response", "")
 
     def generate_json(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
-        Пытается вернуть разобранный JSON. В случае сбоя разбора/исправления возвращает {'error': ..., 'raw': ...}
+        Attempts to return parsed JSON. On parse/repair failure, returns {'error': ..., 'raw': ...}
         """
-        # Добавьте оболочку «strict JSON» к приглашению для улучшения поведения модели
+        # Add strict JSON wrapper to prompt for better model behavior
         strict_prompt = (
-            "Отвечаем строго в формате JSON без поясний и разметок."
-            «Ничего кроме JSON-объекта не отправляй.»
+            "Respond strictly in JSON format without explanations or markdown."
+            "Send nothing but the JSON object."
             f"{prompt}"
         )
-        проанализировано = self._call_api(strict_prompt, max_tokens)
+        parsed = self._call_api(strict_prompt, max_tokens)
 
         response_text = parsed.get("response", "")
-        если нет response_text:
-            return {"error": parsed.get("error", "Нет ответа от LLM")}
+        if not response_text:
+            return {"error": parsed.get("error", "No response from LLM")}
 
-        # Попробуйте надежно извлечь подстроку JSON
+        # Try to robustly extract JSON substring
         json_sub = extract_json_balance(response_text)
-        если json_sub:
-            пытаться:
-                вернуть json.loads(json_sub)
-            за исключением json.JSONDecodeError:
-                пытаться:
-                    вернуть json_repair.loads(json_sub)
-                за исключением исключения repair_exc:
-                    logger.error("Ошибка восстановления JSON в generate_json: %s", repair_exc)
-                    return {"error": f"Не удалось восстановить JSON: {repair_exc}", "raw": response_text}
+        if json_sub:
+            try:
+                return json.loads(json_sub)
+            except json.JSONDecodeError:
+                try:
+                    return json_repair.loads(json_sub)
+                except Exception as repair_exc:
+                    logger.error("JSON repair failed in generate_json: %s", repair_exc)
+                    return {"error": f"JSON repair failed: {repair_exc}", "raw": response_text}
 
-        # Если response_text сам по себе является строкой JSON
-        пытаться:
-            вернуть json.loads(response_text)
-        кроме Исключение:
-            # Крайнее средство: попытка json_repair для всего текста
-            пытаться:
-                вернуть json_repair.loads(response_text)
-            за исключением исключения repair_exc:
-                logger.warning("generate_json: JSON не найден; возвращается необработанный текст")
-                return {"error": "JSON не найден в ответе LLM", "raw": response_text}
+        # If response_text itself is a JSON string
+        try:
+            return json.loads(response_text)
+        except Exception:
+            # Last resort: try json_repair on the whole text
+            try:
+                return json_repair.loads(response_text)
+            except Exception as repair_exc:
+                logger.warning("generate_json: No JSON found; returning raw text")
+                return {"error": "No JSON found in LLM response", "raw": response_text}
 
-# Экземпляр на уровне модуля для легкого импорта
+# Module-level instance for easy import
 llm_client = LLMClient()
 
