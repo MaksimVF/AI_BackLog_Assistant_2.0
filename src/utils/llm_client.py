@@ -1,5 +1,4 @@
 
-
 """
 Adaptive LLM Client with semaphore + JSON repair
 
@@ -12,12 +11,12 @@ Features:
 - Configurable via src.config.Config constants
 """
 
-import logging
+from typing import Optional, Dict, Any
 import time
 import json
+import logging
 import random
 import threading
-from typing import Optional, Dict, Any
 import requests
 import json_repair
 
@@ -25,6 +24,9 @@ from src.config import Config
 
 logger = logging.getLogger(__name__)
 
+# -------------------------
+# Helpers
+# -------------------------
 def now() -> float:
     return time.time()
 
@@ -48,6 +50,9 @@ def extract_json_balance(text: str) -> Optional[str]:
                 return text[start: idx + 1]
     return None
 
+# -------------------------
+# Adaptive semaphore
+# -------------------------
 class AdaptiveSemaphore:
     """
     Semaphore with:
@@ -104,6 +109,9 @@ class AdaptiveSemaphore:
         with self._start_lock:
             return self._min_interval
 
+# -------------------------
+# LLM Client
+# -------------------------
 class LLMClient:
     def __init__(self):
         logger.info("Initializing LLMClient (adaptive semaphore edition)")
@@ -233,7 +241,7 @@ class LLMClient:
                 # If 429 -> handle Retry-After and adapt semaphore interval
                 if resp.status_code == 429:
                     ra = resp.headers.get("Retry-After")
-                    logger.warning("Received 429 from LLM (attempt %d). Server Retry-After: %s", attempt, ra)
+                    logger.warning("Received HTTP 429 (attempt %d). Retry-After header: %s", attempt, ra)
                     retry_after = None
                     if ra:
                         try:
@@ -352,7 +360,7 @@ class LLMClient:
                 return {"response": "", "error": "Empty content in LLM choices"}
             return {"response": content}
 
-        # If result is a dict but not a choice, return JSON as string for generate_json to parse
+        # If result is a dict and not choices, return JSON as string so generate_json can parse it
         if isinstance(result, dict):
             try:
                 json_text = json.dumps(result)
@@ -366,21 +374,21 @@ class LLMClient:
     # Public methods
     def generate_text(self, prompt: str, max_tokens: int = 500) -> str:
         """
-        Returns text response (may be JSON string if LLM returned JSON)
+        Returns textual response (may be JSON string if LLM returned JSON)
         """
-        # Optionally add strict JSON instruction if you expect JSON
-        # But keep generate_text universal.
+        # Optionally prepend strict JSON instruction if you expect JSON
+        # But keep generate_text generic.
         parsed = self._call_api(prompt, max_tokens)
         return parsed.get("response", "")
 
     def generate_json(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
         """
-        Attempts to return parsed JSON. On parse/repair failure, returns {'error': ..., 'raw': ...}
+        Attempts to return parsed JSON. If parsing/repair fails, returns {'error': ..., 'raw': ...}
         """
-        # Add strict JSON wrapper to prompt for better model behavior
+        # Add a "strict JSON" wrapper to the prompt to improve model behavior
         strict_prompt = (
-            "Respond strictly in JSON format without explanations or markdown."
-            "Send nothing but the JSON object."
+            "Отвечай строго в формате JSON без пояснений и разметки. "
+            "Ничего кроме JSON-объекта не отправляй. "
             f"{prompt}"
         )
         parsed = self._call_api(strict_prompt, max_tokens)
@@ -389,7 +397,11 @@ class LLMClient:
         if not response_text:
             return {"error": parsed.get("error", "No response from LLM")}
 
-        # Try to robustly extract JSON substring
+        # Check for mock response
+        if "Mock response" in response_text:
+            return {"error": "LLM not configured", "raw": response_text}
+
+        # Try to extract JSON substring robustly
         json_sub = extract_json_balance(response_text)
         if json_sub:
             try:
@@ -401,17 +413,16 @@ class LLMClient:
                     logger.error("JSON repair failed in generate_json: %s", repair_exc)
                     return {"error": f"JSON repair failed: {repair_exc}", "raw": response_text}
 
-        # If response_text itself is a JSON string
+        # If response_text itself is JSON string
         try:
             return json.loads(response_text)
         except Exception:
-            # Last resort: try json_repair on the whole text
+            # Last resort: attempt json_repair on entire text
             try:
                 return json_repair.loads(response_text)
             except Exception as repair_exc:
-                logger.warning("generate_json: No JSON found; returning raw text")
+                logger.warning("generate_json: no JSON found; returning raw text")
                 return {"error": "No JSON found in LLM response", "raw": response_text}
 
 # Module-level instance for easy import
 llm_client = LLMClient()
-

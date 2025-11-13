@@ -4,13 +4,13 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from src.utils.llm_client import llm_client
-from src.agents.level2.reflection_agent import reflection_agent
-from src.agents.level2.contextualiza_agent import contextualiza_agent
-from src.agents.level3.risk_assessment_agent import risk_assessment_agent
-from src.agents.level3.resource_availability_agent import resource_availability_agent
-from src.agents.level3.impact_potential_agent import impact_potential_agent
-from src.agents.level3.confidence_urgency_agent import confidence_urgency_agent
-from src.agents.level4.summary_agent import summary_agent
+from src.back.agents.level2.reflection_agent import reflection_agent
+from src.back.agents.level2.contextualiza_agent import contextualiza_agent
+from src.back.agents.level3.risk_assessment_agent import risk_assessment_agent
+from src.back.agents.level3.resource_availability_agent import resource_availability_agent
+from src.back.agents.level3.impact_potential_agent import impact_potential_agent
+from src.back.agents.level3.confidence_urgency_agent import confidence_urgency_agent
+from src.back.agents.level4.summary_agent import summary_agent
 
 # Test data
 TEST_INPUT = "We need to fix the critical security vulnerability in the payment system"

@@ -11,10 +11,10 @@ from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
 # Import other agents
-from src.agents.level3.risk_assessment_agent import risk_assessment_agent
-from src.agents.level3.impact_potential_agent import impact_potential_agent
-from src.agents.level3.confidence_urgency_agent import confidence_urgency_agent
-from src.agents.level3.resource_availability_agent import resource_availability_agent
+from src.back.agents.level3.risk_assessment_agent import risk_assessment_agent
+from src.back.agents.level3.impact_potential_agent import impact_potential_agent
+from src.back.agents.level3.confidence_urgency_agent import confidence_urgency_agent
+from src.back.agents.level3.resource_availability_agent import resource_availability_agent
 
 # Configure logging
 logger = logging.getLogger(__name__)
