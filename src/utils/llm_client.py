@@ -1,185 +1,202 @@
 
 
 """
-Refactored LLM Client Module
+Adaptive LLM Client with semaphore + JSON repair
 
 Features:
-- Unified adaptive rate limiting with exponential backoff + jitter
-- Robust JSON extraction (brace balance) and repair fallback via json_repair
-- Thread-safe concurrency counters with proper finally cleanup
-- Clear separation of responsibilities for easier testing and maintenance
+- AdaptiveSemaphore: allows limited concurrency and enforces a minimum interval between request starts
+- Dynamic adjustment of the interval on 429 responses (increase) and on successes (decrease)
+- Exponential backoff with jitter for retries
+- Robust JSON extraction by balanced-brace scanning + json_repair fallback
+- Safe finally cleanup to avoid semaphore leaks
+- Configurable via src.config.Config constants
 """
 
 import logging
 import time
 import json
 import random
-from typing import Dict, Any, Optional
+import threading
+from typing import Optional, Dict, Any
 import requests
-from threading import Lock
 import json_repair
 
 from src.config import Config
 
 logger = logging.getLogger(__name__)
 
-def _now() -> float:
+def now() -> float:
     return time.time()
 
 def extract_json_balance(text: str) -> Optional[str]:
     """
-    Extract JSON object/string by scanning for the first balanced {...} sequence.
-    Returns the JSON substring or None.
+    Extract the first balanced JSON object substring from text by scanning braces.
+    Returns the substring (possibly malformed) or None.
     """
     if not text:
         return None
-    start_idx = None
+    start = None
     depth = 0
-    for i, ch in enumerate(text):
+    for idx, ch in enumerate(text):
         if ch == '{':
-            if start_idx is None:
-                start_idx = i
+            if start is None:
+                start = idx
             depth += 1
-        elif ch == '}' and start_idx is not None:
+        elif ch == '}' and start is not None:
             depth -= 1
             if depth == 0:
-                candidate = text[start_idx:i + 1]
-                # Quick sanity check: try to parse; if invalid, still return candidate for repair attempt
-                try:
-                    json.loads(candidate)
-                    return candidate
-                except json.JSONDecodeError:
-                    return candidate
+                return text[start: idx + 1]
     return None
+
+class AdaptiveSemaphore:
+    """
+    Semaphore with:
+    - max_concurrent: number of parallel request slots
+    - min_interval: minimal seconds between starts of requests (across all threads)
+    - dynamic adaptation: increase min_interval on 429, decrease on successes
+    Thread-safe.
+    """
+    def __init__(self, max_concurrent: int = 1, min_interval: float = 2.0,
+                 min_interval_limit: float = 0.5, max_interval_limit: float = 30.0):
+        self._sema = threading.Semaphore(max_concurrent)
+        self._start_lock = threading.Lock()  # protects last_start_time and interval adjustments
+        self._last_start_time = 0.0
+        self._min_interval = float(min_interval)
+        self._min_interval_limit = float(min_interval_limit)
+        self._max_interval_limit = float(max_interval_limit)
+
+    def acquire(self):
+        # Acquire slot
+        self._sema.acquire()
+        # Enforce inter-start interval (only one thread adjusts/waits at a time)
+        with self._start_lock:
+            elapsed = now() - self._last_start_time
+            if elapsed < self._min_interval:
+                to_wait = self._min_interval - elapsed
+                logger.debug("AdaptiveSemaphore waiting %.3fs to respect min_interval %.3fs", to_wait, self._min_interval)
+                time.sleep(to_wait)
+            self._last_start_time = now()
+
+    def release(self):
+        try:
+            self._sema.release()
+        except ValueError:
+            # Just in case
+            logger.exception("Semaphore release error")
+
+    def increase_interval(self, factor: float = 1.5, cap: Optional[float] = None):
+        with self._start_lock:
+            new_val = min(self._max_interval_limit, self._min_interval * factor)
+            if cap:
+                new_val = min(new_val, cap)
+            logger.info("Increasing min_interval from %.3fs -> %.3fs", self._min_interval, new_val)
+            self._min_interval = max(self._min_interval_limit, new_val)
+
+    def decrease_interval(self, factor: float = 0.9):
+        with self._start_lock:
+            new_val = max(self._min_interval_limit, self._min_interval * factor)
+            if new_val != self._min_interval:
+                logger.debug("Decreasing min_interval from %.3fs -> %.3fs", self._min_interval, new_val)
+            self._min_interval = new_val
+
+    @property
+    def min_interval(self) -> float:
+        with self._start_lock:
+            return self._min_interval
 
 class LLMClient:
     def __init__(self):
-        logger.info("Initializing LLMClient")
-        self.api_key = Config.MISTRAL_API_KEY
-        self.api_url = Config.MISTRAL_API_URL.rstrip('/') if Config.MISTRAL_API_URL else None
+        logger.info("Initializing LLMClient (adaptive semaphore edition)")
+
+        # Configurable via Config; provide sane defaults if missing
+        self.api_key = getattr(Config, "MISTRAL_API_KEY", None)
+        self.api_url = getattr(Config, "MISTRAL_API_URL", None)
         self.model = getattr(Config, "MISTRAL_MODEL", None)
 
-        # Rate limiting / backoff parameters (configurable via Config)
-        self.min_delay = getattr(Config, "LLM_MIN_DELAY", 0.5)           # minimal delay between requests (seconds)
-        self.max_delay = getattr(Config, "LLM_MAX_DELAY", 8.0)           # maximal backoff delay
-        self._current_delay = getattr(Config, "LLM_START_DELAY", 1.0)    # adaptive starting delay
-        self.max_requests_per_minute = getattr(Config, "LLM_MAX_RPM", 60) # soft RPM limit
-        self.max_concurrent_requests = getattr(Config, "LLM_MAX_CONCURRENT", 2)
-        self.max_retries = getattr(Config, "LLM_MAX_RETRIES", 4)
-        self.backoff_multiplier = getattr(Config, "LLM_BACKOFF_MULT", 2.0)
-        self.jitter = getattr(Config, "LLM_BACKOFF_JITTER", 0.3)
+        # Semaphore settings
+        default_max_concurrent = getattr(Config, "LLM_MAX_CONCURRENT", 1)
+        default_min_interval = getattr(Config, "LLM_MIN_INTERVAL", 2.0)
+        min_interval_limit = getattr(Config, "LLM_MIN_INTERVAL_LIMIT", 0.5)
+        max_interval_limit = getattr(Config, "LLM_MAX_INTERVAL_LIMIT", 60.0)
 
-        # Internal counters / locks
-        self._rate_lock = Lock()
-        self._concurrent_lock = Lock()
-        self._concurrent_requests = 0
-        self._minute_window_start = _now()
+        self._semaphore = AdaptiveSemaphore(
+            max_concurrent=default_max_concurrent,
+            min_interval=default_min_interval,
+            min_interval_limit=min_interval_limit,
+            max_interval_limit=max_interval_limit
+        )
+
+        # Backoff & retry settings
+        self.max_retries = getattr(Config, "LLM_MAX_RETRIES", 3)
+        self.backoff_multiplier = getattr(Config, "LLM_BACKOFF_MULT", 2.0)
+        self.backoff_jitter = getattr(Config, "LLM_BACKOFF_JITTER", 0.25)
+        self.backoff_max = getattr(Config, "LLM_BACKOFF_MAX", 60.0)
+
+        # Internal RPM soft limiter (optional)
+        self.max_requests_per_minute = getattr(Config, "LLM_MAX_RPM", None)
+        self._rpm_lock = threading.Lock()
+        self._minute_window_start = now()
         self._requests_in_minute = 0
 
-        if not self.api_key or not self.api_url or not self.model:
-            logger.warning("LLM Client misconfigured: API key / URL / model may be missing - mock responses will be used")
+        if not (self.api_key and self.api_url and self.model):
+            logger.warning("LLMClient is not fully configured (api_key/url/model). Client will return mock responses.")
 
-    # ---------------------
-    # Helpers: endpoint/payload
-    # ---------------------
+    # Helper: build endpoint robustly
     def _build_endpoint(self) -> str:
-        # Supports passing either full path or base URL
         if not self.api_url:
             raise RuntimeError("API URL not configured")
-        endpoint = self.api_url
-        if endpoint.endswith("/chat/completions"):
+        endpoint = self.api_url.rstrip('/')
+        if endpoint.endswith('/chat/completions'):
             return endpoint
-        if endpoint.endswith("/v1"):
-            return endpoint + "/chat/completions"
-        if "/v1" in endpoint:
-            return endpoint.rstrip('/') + "/chat/completions"
-        return endpoint.rstrip('/') + "/v1/chat/completions"
+        if endpoint.endswith('/v1'):
+            return endpoint + '/chat/completions'
+        if '/v1' in endpoint:
+            return endpoint.rstrip('/') + '/chat/completions'
+        return endpoint + '/v1/chat/completions'
 
+    # Helper: incremental RPM counter
+    def _increment_rpm(self):
+        if not self.max_requests_per_minute:
+            return
+        with self._rpm_lock:
+            now_ts = now()
+            if now_ts - self._minute_window_start >= 60:
+                self._minute_window_start = now_ts
+                self._requests_in_minute = 0
+            self._requests_in_minute += 1
+            if self._requests_in_minute > self.max_requests_per_minute:
+                # Very conservative: if exceeded, pause until next minute
+                wait = 60 - (now_ts - self._minute_window_start)
+                if wait > 0:
+                    logger.warning("Local RPM exceeded (%d/%d). Sleeping %.1fs", self._requests_in_minute, self.max_requests_per_minute, wait)
+                    time.sleep(wait)
+                    self._minute_window_start = now()
+                    self._requests_in_minute = 1
+
+    # Build payload
     def _prepare_payload(self, prompt: str, max_tokens: int) -> Dict[str, Any]:
         return {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": max_tokens,
-            "temperature": 0.7
+            "temperature": getattr(Config, "LLM_TEMPERATURE", 0.7)
         }
 
-    # ---------------------
-    # Rate limiting & backoff
-    # ---------------------
-    def _enter_request_slot(self) -> None:
-        """
-        Ensure we do not exceed concurrent or per-minute soft limits.
-        This function will block briefly if necessary.
-        """
-        while True:
-            with self._rate_lock:
-                now = _now()
-                # reset minute window if needed
-                if now - self._minute_window_start >= 60:
-                    self._minute_window_start = now
-                    self._requests_in_minute = 0
+    # Backoff calculation
+    def _compute_backoff(self, attempt: int, base: Optional[float] = None) -> float:
+        if base is None:
+            base = 1.0
+        # exponential * random jitter
+        raw = base * (self.backoff_multiplier ** (attempt - 1))
+        jitter = random.uniform(-self.backoff_jitter, self.backoff_jitter) * raw
+        val = min(self.backoff_max, max(0.0, raw + jitter))
+        return val
 
-                if self._requests_in_minute < self.max_requests_per_minute and self._concurrent_requests < self.max_concurrent_requests:
-                    # allow
-                    self._requests_in_minute += 1
-                    with self._concurrent_lock:
-                        self._concurrent_requests += 1
-                    break
-                else:
-                    # Wait small time and re-evaluate
-                    wait = max(self.min_delay, 0.5)
-                    logger.debug("Throttling locally: waiting %.2fs before retrying slot acquisition", wait)
-            time.sleep(wait)
-
-        # Enforce minimal delay between calls (adaptive)
-        # Sleep outside locks to avoid blocking other threads trying to modify counters
-        logger.debug("Enforcing inter-request delay: %.2fs", self._current_delay)
-        time.sleep(self._current_delay)
-
-    def _exit_request_slot(self) -> None:
-        with self._concurrent_lock:
-            self._concurrent_requests = max(0, self._concurrent_requests - 1)
-
-    def _handle_rate_limit(self, retry_after: Optional[float] = None) -> float:
-        """
-        Update internal delay using exponential backoff + jitter.
-        Returns the sleep time applied.
-        """
-        if retry_after is None:
-            base = min(self._current_delay * self.backoff_multiplier, self.max_delay)
-        else:
-            # If server provided Retry-After, use it but don't exceed max_delay
-            base = min(max(retry_after, self._current_delay * 1.0), self.max_delay)
-
-        # jitter
-        jitter = random.uniform(-self.jitter, self.jitter) * base
-        sleep_time = max(self.min_delay, min(self.max_delay, base + jitter))
-
-        # apply and record
-        logger.warning("Applying backoff: sleeping %.2fs (base=%.2f, jitter=%.2f)", sleep_time, base, jitter)
-        time.sleep(sleep_time)
-
-        # update adaptive delay conservatively
-        with self._rate_lock:
-            self._current_delay = min(self.max_delay, max(self.min_delay, sleep_time))
-        return sleep_time
-
-    def _record_success(self) -> None:
-        # Reduce delay slowly on success
-        with self._rate_lock:
-            self._current_delay = max(self.min_delay, self._current_delay * 0.85)
-
-    # ---------------------
-    # Request & response handling
-    # ---------------------
-    def _request(self, prompt: str, max_tokens: int) -> Dict[str, Any]:
-        """
-        Performs the HTTP request with retries and handles HTTP-level errors.
-        Returns the parsed response dict {'response': str} or {'error': str, ...}
-        """
-        if not self.api_key or not self.api_url or not self.model:
+    # Main request caller (synchronous)
+    def _call_api(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
+        if not (self.api_key and self.api_url and self.model):
             logger.warning("LLM not configured; returning mock response")
-            return {"response": "Mock response - LLM not configured", "error": None}
+            return {"response": "Mock response - LLM not configured"}
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -191,156 +208,189 @@ class LLMClient:
         attempt = 0
         while attempt <= self.max_retries:
             attempt += 1
+            # Acquire semaphore slot (this also enforces inter-start delay)
+            logger.debug("Acquiring semaphore (attempt %d)", attempt)
+            self._semaphore.acquire()
             try:
-                logger.debug("LLM request attempt %d to %s", attempt, endpoint)
-                self._enter_request_slot()
+                # RPM increment and local check
+                self._increment_rpm()
+
+                logger.debug("Sending request to %s (attempt %d)", endpoint, attempt)
                 try:
                     resp = requests.post(endpoint, headers=headers, json=payload, timeout=60)
-                finally:
-                    # We will decrement concurrent_requests in outer finally after processing
-                    pass
+                except requests.RequestException as e:
+                    logger.error("Request exception: %s", e)
+                    # network error -> backoff & retry
+                    if attempt <= self.max_retries:
+                        backoff = self._compute_backoff(attempt)
+                        logger.info("Network error, sleeping %.2fs before retry", backoff)
+                        time.sleep(backoff)
+                        # increase semaphore's interval slightly to reduce pressure
+                        self._semaphore.increase_interval(factor=1.2, cap=self._semaphore._max_interval_limit)
+                        continue
+                    return {"response": "", "error": f"Request failed: {e}"}
 
-                # Handle status codes
+                # If 429 -> handle Retry-After and adapt semaphore interval
                 if resp.status_code == 429:
-                    # Parse Retry-After robustly (seconds or HTTP date)
-                    retry_after = None
                     ra = resp.headers.get("Retry-After")
+                    logger.warning("Received 429 from LLM (attempt %d). Server Retry-After: %s", attempt, ra)
+                    retry_after = None
                     if ra:
                         try:
                             retry_after = float(ra)
-                        except ValueError:
-                            # Could be HTTP-date; fallback to None -> use backoff multiplier
+                        except Exception:
                             retry_after = None
-                    logger.warning("Received 429 from LLM (attempt %d). Server Retry-After: %s", attempt, ra)
-                    self._handle_rate_limit(retry_after)
-                    # continue to retry unless we've exhausted attempts
+
+                    # If server indicates seconds, use it, otherwise use backoff calculation
+                    if retry_after:
+                        sleep_for = max(0.5, retry_after)
+                    else:
+                        sleep_for = self._compute_backoff(attempt)
+
+                    logger.info("Sleeping %.2fs due to 429", sleep_for)
+                    time.sleep(sleep_for)
+
+                    # Increase the semaphore's min_interval to be more conservative
+                    # Use factor based on attempt to ramp up more when persistent
+                    factor = 1.5 + (attempt - 1) * 0.2
+                    self._semaphore.increase_interval(factor=factor, cap=self._semaphore._max_interval_limit)
+                    # continue retrying
                     continue
 
+                # 404 -> endpoint problem, stop retrying
                 if resp.status_code == 404:
                     logger.error("LLM endpoint not found: %s", endpoint)
                     return {"response": "", "error": "API endpoint not found (404)"}
 
-                try:
-                    resp.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    logger.error("HTTP error from LLM: %s", e)
-                    # for 5xx, apply backoff and retry
-                    if 500 <= resp.status_code < 600 and attempt <= self.max_retries:
-                        self._handle_rate_limit(None)
+                # Other 5xx -> backoff and retry
+                if 500 <= resp.status_code < 600:
+                    logger.error("Server error %d from LLM", resp.status_code)
+                    if attempt <= self.max_retries:
+                        backoff = self._compute_backoff(attempt)
+                        logger.info("Server error, sleeping %.2fs before retry", backoff)
+                        time.sleep(backoff)
+                        self._semaphore.increase_interval(factor=1.3)
                         continue
-                    return {"response": "", "error": f"HTTP error: {resp.status_code}"}
+                    return {"response": "", "error": f"Server error: {resp.status_code}"}
 
-                # Successful HTTP-level response; parse content
+                # At this point resp.status_code is 2xx or other non-retryable
                 parsed = self._parse_response(resp)
-                if "error" in parsed:
-                    # If parse error is transient, consider retrying once
-                    logger.warning("Parse error from LLM response: %s", parsed.get("error"))
+                # If parse gave error, return it (no point retrying unless network/server issue)
+                if "error" in parsed and parsed.get("response", "") == "":
+                    logger.warning("Parsing error from LLM response: %s", parsed.get("error"))
+                    # If parse error is likely due to truncated response (e.g., no closing brace),
+                    # consider a retry once more with increased tokens (but be conservative)
+                    # For now, return parse error directly
                     return parsed
-                # success
-                self._record_success()
+
+                # Successful parse -> gently decrease semaphore interval back toward lower bound
+                self._semaphore.decrease_interval(factor=0.95)
                 return parsed
 
-            except requests.exceptions.RequestException as e:
-                logger.error("Request exception: %s", e)
-                # network error -> backoff and retry up to max_retries
-                if attempt <= self.max_retries:
-                    self._handle_rate_limit(None)
-                    continue
-                return {"response": "", "error": f"Request failed: {e}"}
             finally:
-                # Ensure concurrent counter decremented exactly once per enter
+                # Always release semaphore slot
                 try:
-                    self._exit_request_slot()
+                    self._semaphore.release()
                 except Exception:
-                    logger.exception("Failed to exit request slot cleanly")
-        # if exhausted
+                    logger.exception("Error releasing semaphore in finally")
+
+        # If exhausted attempts
+        logger.error("Max retries exceeded for prompt")
         return {"response": "", "error": "Max retries exceeded"}
 
-    def _parse_response(self, response: requests.Response) -> Dict[str, Any]:
-        """
-        Parse JSON response from the LLM. Supports:
-        - direct JSON `response.json()`
-        - "chat/completions" style: result['choices'][0]['message']['content']
-        - HTML detection
-        - malformed JSON repair via json_repair
-        """
-        content_type = response.headers.get("Content-Type", "").lower()
-        text = response.text or ""
+    # Response parsing
+    def _parse_response(self, resp: requests.Response) -> Dict[str, Any]:
+        content_type = resp.headers.get("Content-Type", "").lower()
+        text = resp.text or ""
 
+        # Detect HTML error pages
         if "text/html" in content_type:
-            logger.error("LLM returned HTML content; possible error page")
-            logger.debug("HTML response snippet: %s", text[:500])
+            logger.error("LLM returned HTML content (probably error page). Snippet: %s", text[:400])
             return {"response": "", "error": "HTML returned instead of JSON"}
 
-        # Try direct json()
+        # Try json() first
         try:
-            result = response.json()
+            result = resp.json()
         except ValueError:
-            # Attempt to extract JSON substring then repair
-            logger.debug("Response.json() failed, attempting substring extraction and repair")
+            # Attempt to extract JSON substring
+            logger.debug("response.json() failed; trying to extract JSON substring")
             json_sub = extract_json_balance(text)
             if not json_sub:
-                logger.warning("No JSON substring found in LLM response")
-                return {"response": text, "error": "No JSON detected in response"}
+                # Try to strip markdown code fences and search again
+                cleaned = text.replace("```json", "").replace("```", "")
+                json_sub = extract_json_balance(cleaned)
+                if not json_sub:
+                    logger.warning("No JSON substring found in LLM output. Raw snippet: %s", text[:400])
+                    return {"response": text, "error": "No JSON detected in response"}
+
+            # Try to parse candidate, then repair
             try:
                 result = json.loads(json_sub)
             except json.JSONDecodeError:
-                # Try json_repair
                 try:
+                    # json_repair.loads may accept malformed JSON and return dict
                     result = json_repair.loads(json_sub)
-                    logger.info("json_repair succeeded")
+                    logger.info("json_repair succeeded for extracted substring")
                 except Exception as repair_exc:
                     logger.error("json_repair failed: %s", repair_exc)
-                    logger.debug("Raw response: %s", text[:1000])
+                    logger.debug("Raw response (long): %s", text[:2000])
                     return {"response": text, "error": f"Invalid JSON and repair failed: {repair_exc}"}
 
-        # Now extract generated content
-        # Prefer 'choices' -> 'message' -> 'content' (OpenAI/Mistral chat style)
+        # At this point, result is a parsed JSON-like object or other Python object
+        # If response follows chat/completions 'choices' schema, extract 'content'
         if isinstance(result, dict) and "choices" in result and isinstance(result["choices"], list) and len(result["choices"]) > 0:
             first = result["choices"][0]
-            # Some providers put content under 'message'->'content' or directly under 'text'
+            # different providers may have message->content or text
             content = None
             if isinstance(first, dict):
                 if "message" in first and isinstance(first["message"], dict):
                     content = first["message"].get("content")
                 elif "text" in first:
                     content = first.get("text")
-            if content is None:
-                logger.warning("No 'content' found in first choice: %s", first)
-                return {"response": "", "error": "Empty LLM content in choices"}
+            if content is None or content == "":
+                logger.warning("Empty 'content' in choices: %s", first)
+                return {"response": "", "error": "Empty content in LLM choices"}
             return {"response": content}
 
-        # Fallback: if the whole response is a dict that is the desired JSON, return its stringified form
+        # If result is a dict but not a choice, return JSON as string for generate_json to parse
         if isinstance(result, dict):
             try:
-                # If user expects JSON string, return raw JSON text as response (so generate_json can parse)
-                return {"response": json.dumps(result)}
+                json_text = json.dumps(result)
+                return {"response": json_text}
             except Exception:
                 return {"response": str(result)}
 
-        # If result is plain text or list, return textual representation
-        try:
-            return {"response": str(result)}
-        except Exception as e:
-            logger.error("Unable to stringify LLM result: %s", e)
-            return {"response": "", "error": "Unable to parse LLM response"}
+        # List or primitive -> return textual representation
+        return {"response": str(result)}
 
-    # ---------------------
     # Public methods
-    # ---------------------
     def generate_text(self, prompt: str, max_tokens: int = 500) -> str:
-        parsed = self._request(prompt, max_tokens)
+        """
+        Returns text response (may be JSON string if LLM returned JSON)
+        """
+        # Optionally add strict JSON instruction if you expect JSON
+        # But keep generate_text universal.
+        parsed = self._call_api(prompt, max_tokens)
         return parsed.get("response", "")
 
     def generate_json(self, prompt: str, max_tokens: int = 500) -> Dict[str, Any]:
-        parsed = self._request(prompt, max_tokens)
-        text = parsed.get("response", "")
-        if not text:
-            return {"error": parsed.get("error", "No response")}
+        """
+        Attempts to return parsed JSON. On parse/repair failure, returns {'error': ..., 'raw': ...}
+        """
+        # Add strict JSON wrapper to prompt for better model behavior
+        strict_prompt = (
+            "Respond strictly in JSON format without explanations or markdown."
+            "Send nothing but the JSON object."
+            f"{prompt}"
+        )
+        parsed = self._call_api(strict_prompt, max_tokens)
 
-        # Try direct parse
-        # If text looks like a JSON string, attempt to parse it
-        json_sub = extract_json_balance(text)
+        response_text = parsed.get("response", "")
+        if not response_text:
+            return {"error": parsed.get("error", "No response from LLM")}
+
+        # Try to robustly extract JSON substring
+        json_sub = extract_json_balance(response_text)
         if json_sub:
             try:
                 return json.loads(json_sub)
@@ -348,11 +398,20 @@ class LLMClient:
                 try:
                     return json_repair.loads(json_sub)
                 except Exception as repair_exc:
-                    logger.error("JSON repair failed: %s", repair_exc)
-                    return {"error": f"JSON repair failed: {repair_exc}", "raw": text}
-        # If no JSON detected, return original text as error
-        return {"error": "No JSON found in LLM response", "raw": text}
+                    logger.error("JSON repair failed in generate_json: %s", repair_exc)
+                    return {"error": f"JSON repair failed: {repair_exc}", "raw": response_text}
 
-# Create a module-level client
+        # If response_text itself is a JSON string
+        try:
+            return json.loads(response_text)
+        except Exception:
+            # Last resort: try json_repair on the whole text
+            try:
+                return json_repair.loads(response_text)
+            except Exception as repair_exc:
+                logger.warning("generate_json: No JSON found; returning raw text")
+                return {"error": "No JSON found in LLM response", "raw": response_text}
+
+# Module-level instance for easy import
 llm_client = LLMClient()
 
