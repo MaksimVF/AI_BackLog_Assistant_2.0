@@ -26,6 +26,16 @@ async def startup_event():
     """Start background tasks when the API starts"""
     logger.info("Starting API startup tasks...")
 
+    # Initialize database tables
+    try:
+        logger.info("🗄️ Initializing database tables...")
+        from src.db.init_db import init_db
+        await init_db()
+        logger.info("✅ Database tables initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize database: {e}")
+        logger.error("⚠️ Database will not be available")
+
     # Check external service connections
     try:
         logger.info("🔌 Checking external service connections...")
