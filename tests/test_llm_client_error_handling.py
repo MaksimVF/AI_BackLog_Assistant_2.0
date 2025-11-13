@@ -24,7 +24,7 @@ def test_llm_client_no_api_key():
     # Test JSON generation
     json_response = client.generate_json("Test prompt")
     assert "error" in json_response
-    assert "No JSON found" in json_response["error"]
+    assert "LLM not configured" in json_response["error"]
 
     print("✅ LLM client no API key test passed")
 

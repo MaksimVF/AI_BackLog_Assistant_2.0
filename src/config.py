@@ -74,6 +74,18 @@ class Config:
     MISTRAL_API_URL = os.getenv('MISTRAL_API_URL', 'https://api.mistral.ai/v1/chat/completions')
     MISTRAL_MODEL = os.getenv('MISTRAL_MODEL', 'mistral-medium-2508')
 
+    # LLM Client configuration
+    LLM_MAX_CONCURRENT = int(os.getenv('LLM_MAX_CONCURRENT', '2'))
+    LLM_MIN_INTERVAL = float(os.getenv('LLM_MIN_INTERVAL', '2.5'))
+    LLM_MIN_INTERVAL_LIMIT = float(os.getenv('LLM_MIN_INTERVAL_LIMIT', '0.5'))
+    LLM_MAX_INTERVAL_LIMIT = float(os.getenv('LLM_MAX_INTERVAL_LIMIT', '30.0'))
+    LLM_MAX_RETRIES = int(os.getenv('LLM_MAX_RETRIES', '3'))
+    LLM_BACKOFF_MULT = float(os.getenv('LLM_BACKOFF_MULT', '2.0'))
+    LLM_BACKOFF_JITTER = float(os.getenv('LLM_BACKOFF_JITTER', '0.25'))
+    LLM_BACKOFF_MAX = float(os.getenv('LLM_BACKOFF_MAX', '60.0'))
+    LLM_MAX_RPM = int(os.getenv('LLM_MAX_RPM', '30'))
+    LLM_TEMPERATURE = float(os.getenv('LLM_TEMPERATURE', '0.7'))
+
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG')
 
